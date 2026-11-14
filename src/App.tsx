@@ -308,8 +308,8 @@ function App() {
                         </li>
                       )}
                       <li>
-                        Data: {ndviFile.source}, {ndviFile.years[0]}–{ndviFile.years[1]}, one{' '}
-                        {ndviFile.pixelMetres ?? 250} m pixel at {ndviFile.latitude}, {ndviFile.longitude}
+                        Data: {ndviFile.source}, {ndviFile.years[0]}–{ndviFile.years[1]}, one MODIS pixel (250 m
+                        product, {ndviFile.pixelMetres ?? 250} m cell) at {ndviFile.latitude}, {ndviFile.longitude}
                         {ndviFile.landCover
                           ? `; MODIS land cover there is “${ndviFile.landCover.label}” (${ndviFile.landCover.year}).`
                           : '.'}{' '}
@@ -371,12 +371,20 @@ function App() {
               rainfall, root-zone soil wetness and evapotranspiration, {START_YEAR}–{END_YEAR}.
             </li>
             <li>
+              Other data: MODIS vegetation, evapotranspiration, temperature and growing-season dates (NASA, served by the
+              ORNL DAAC), Landsat and NASADEM elevation (NASA/USGS, served by Microsoft Planetary Computer) and NASA GIBS
+              imagery. These satellite layers are bundled for the demo sites only. Soil can come from ISRIC SoilGrids
+              (not NASA, beta). Crop requirements come from FAO tables.
+            </li>
+            <li>
               Each crop is scored for each season on temperature, cold and heat stress, and water supply versus need,
-              for every past year. Rotations are then scored on soil health, water demand, reliability and income.
+              for every past year; need is estimated from local temperature (FAO-56). Rotations are then scored on soil
+              health, water demand, reliability and income.
             </li>
             <li>
               Crop characteristics are approximate reference values and must be checked locally.
-              Not yet included: satellite vegetation (MODIS, Landsat) outside the demo sites, or in the scores (it is shown as evidence only), SMAP soil moisture, local soil survey data and prices.
+              Not included: satellite data outside the demo sites or in the scores (it is shown as evidence only),
+              SMAP soil moisture, measured soil data for your field, and prices.
             </li>
             <li>
               Built with help from AI tools (Claude by Anthropic) for code and wording; the team reviewed the results.

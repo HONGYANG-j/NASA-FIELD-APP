@@ -199,13 +199,13 @@ export function explain(
     ...soilGaps(table.soil, soilFromGrids),
     sourceGap(r.crops),
     'Market prices, seed availability, labour and equipment are not modelled; "income" is only a rough relative value.',
-    'NASA POWER is gridded model/satellite data (about 50 km cells): it will not capture your exact field. Temperature is corrected for height only if you enter your field elevation; rainfall is never corrected. Satellite vegetation (NDVI) and soil-moisture (SMAP) layers are not yet included.',
-    'Water supply counts rain plus a share of root-zone moisture. It ignores water stored from earlier seasons, so dry-climate or rainfed scores can look pessimistic; tick "I can irrigate" if you have water access.',
+    'NASA POWER is gridded model/satellite data (about 50 km cells): it will not capture your exact field. Temperature is corrected for height only if you enter your field elevation; rainfall is never corrected. Satellite vegetation, evapotranspiration and temperature layers (MODIS, Landsat) are bundled only for the demo sites and are shown as evidence, not used in the scores; SMAP soil moisture is not included.',
+    'Water supply counts rain plus a share of root-zone moisture. It ignores water stored from earlier seasons, so dry-climate or rainfed scores can look pessimistic; tick "I can irrigate" if you have water access. Crop water need is estimated from temperature (FAO-56); against MODIS satellite potential evapotranspiration it ran about 10% lower in Iowa and about 25% lower in Kedah, so needs may be somewhat underestimated.',
     'Scores rank options; they do not predict yield. Final decisions belong to the farmer and local experts.',
   ]
   gaps.push(
     satellite
-      ? 'Satellite greenness (MODIS NDVI) is one 250 m pixel at this point. It shows what is growing there, not necessarily your field or the crop being proposed, and it is not used to score rotations.'
+      ? 'Satellite greenness (MODIS NDVI) is one MODIS pixel (250 m product, about 232 m wide) at this point. It shows what is growing there, not necessarily your field or the crop being proposed, and it is not used to score rotations.'
       : hasLayer
         ? 'Satellite greenness for this location is shown in the "What the satellite sees" panel. In one-crop-per-year mode it cannot be attributed to a single rotation year, and it is not used to score rotations.'
         : 'No satellite vegetation layer for this location: it is bundled only for demo locations whose MODIS pixel is verified farmland, because the live MODIS service is too slow to call in the app.',
