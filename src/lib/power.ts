@@ -1,5 +1,6 @@
 // NASA POWER (Prediction Of Worldwide Energy Resources) daily point client.
 // Docs: https://power.larc.nasa.gov/  (no API key needed; CORS-enabled)
+import { PRESETS } from '../data/presets'
 import type { DailySeries } from '../types'
 
 const PARAMS = 'T2M,T2M_MAX,T2M_MIN,PRECTOTCORR,GWETROOT,EVPTRNS'
@@ -25,7 +26,7 @@ export function powerUrl(
 }
 
 type PowerParam = Record<string, number>
-interface PowerResponse {
+export interface PowerResponse {
   properties: { parameter: Record<string, PowerParam> }
   header?: { fill_value?: number }
   /** GeoJSON point: [longitude, latitude, elevation of the model grid cell in metres]. */
@@ -74,9 +75,55 @@ export function parsePower(json: PowerResponse): DailySeries {
   return out
 }
 
+/** A bundled copy of one POWER response (see scripts/fetch-power.mjs). */
+export interface PowerSnapshot {
+  id: string
+  fetched: string
+  latitude?: number
+  longitude?: number
+  gridElevationM: number | null
+  requested: { lat: number; lon: number }
+  years: [number, number]
+  fill: number
+  days: number
+  series: Record<string, number[]>
+}
+
+const snapshotFiles = import.meta.glob<PowerSnapshot>('../data/power/*.json', { import: 'default' })
+
+/** Rebuilds the POWER response shape from a snapshot so the same parser handles live and bundled data. */
+export function snapshotToResponse(s: PowerSnapshot): PowerResponse {
+  const parameter: Record<string, PowerParam> = {}
+  const start = Date.UTC(s.years[0], 0, 1)
+  const keys: string[] = []
+  for (let i = 0; i < s.days; i++) {
+    const d = new Date(start + i * 86_400_000)
+    keys.push(`${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`)
+  }
+  for (const [name, values] of Object.entries(s.series)) {
+    const m: PowerParam = {}
+    for (let i = 0; i < keys.length; i++) m[keys[i]] = values[i]
+    parameter[name] = m
+  }
+  return {
+    properties: { parameter },
+    header: { fill_value: s.fill },
+    geometry: { coordinates: [s.longitude ?? s.requested.lon, s.latitude ?? s.requested.lat, ...(s.gridElevationM !== null ? [s.gridElevationM] : [])] },
+  }
+}
+
+/** The bundled snapshot for a demo site's exact coordinates and period, or null (then the live API is used). */
+export async function loadSnapshot(lat: number, lon: number, startYear: number, endYear: number): Promise<PowerSnapshot | null> {
+  const preset = PRESETS.find((p) => p.lat === lat && p.lon === lon)
+  const load = preset ? snapshotFiles[`../data/power/${preset.id}.json`] : undefined
+  if (!load) return null
+  const s = await load()
+  return s.years[0] === startYear && s.years[1] === endYear ? s : null
+}
+
 const CACHE_PREFIX = 'power:v1:'
 
-/** Load daily data, with a localStorage cache so the demo still works offline/rate-limited. */
+/** Load daily data: bundled snapshot for the demo sites, else a localStorage copy, else the live NASA POWER API. */
 export async function loadDaily(
   lat: number,
   lon: number,
@@ -87,15 +134,22 @@ export async function loadDaily(
   series: DailySeries
   gridElevationM: number | null
   fromCache: boolean
+  /** Download date of the bundled snapshot, or null when the data came from the live API or this device's saved copy. */
+  snapshotDate: string | null
   url: string
 }> {
   const url = powerUrl(lat, lon, startYear, endYear)
+  const snap = await loadSnapshot(lat, lon, startYear, endYear)
+  if (snap) {
+    const json = snapshotToResponse(snap)
+    return { series: parsePower(json), gridElevationM: gridElevation(json), fromCache: false, snapshotDate: snap.fetched, url }
+  }
   const key = CACHE_PREFIX + url
   try {
     const hit = localStorage.getItem(key)
     if (hit) {
       const json = JSON.parse(hit) as PowerResponse
-      return { series: parsePower(json), gridElevationM: gridElevation(json), fromCache: true, url }
+      return { series: parsePower(json), gridElevationM: gridElevation(json), fromCache: true, snapshotDate: null, url }
     }
   } catch {
     /* storage unavailable: fall through to network */
@@ -126,5 +180,5 @@ export async function loadDaily(
   } catch {
     /* quota exceeded: ignore */
   }
-  return { series, gridElevationM: gridElevation(json), fromCache: false, url }
+  return { series, gridElevationM: gridElevation(json), fromCache: false, snapshotDate: null, url }
 }

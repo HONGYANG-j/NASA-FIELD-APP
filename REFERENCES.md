@@ -9,7 +9,7 @@ Licence of this project's original code and content: **Apache License 2.0** (see
 
 | Data | Provider / product | How it was used | Where |
 |---|---|---|---|
-| Daily temperature, rainfall, root-zone soil wetness, grid elevation, 2005-2024 | NASA POWER (NASA Langley Research Center) | Drives every score. Fetched live in the browser. | https://power.larc.nasa.gov/ |
+| Daily temperature, rainfall, root-zone soil wetness, grid elevation, 2005-2024 | NASA POWER (NASA Langley Research Center) | Drives every score. A copy of the 2005-2024 record for the three demo sites (downloaded 14 Nov 2026 with `scripts/fetch-power.mjs`) is bundled with the app; any other location is fetched live in the browser. | https://power.larc.nasa.gov/ |
 | NDVI, evapotranspiration, land-surface temperature, leaf area index, growing-season dates, land cover (MOD13Q1, MOD16A2, MOD11A2, MCD15A2H, MCD12Q2, MCD12Q1) | NASA MODIS, LP DAAC, served by the ORNL DAAC MODIS web service | Evidence for Kedah and Iowa (not scored); land cover used to choose cropland pixels. Bundled. | https://modis.ornl.gov/ , https://lpdaac.usgs.gov/ |
 | Surface reflectance (NDVI), Landsat 7, 8, 9 Collection 2 Level-2 | USGS/NASA Landsat, read through Microsoft Planetary Computer | Evidence for Kedah and Iowa (not scored). Bundled. | https://planetarycomputer.microsoft.com/ |
 | Elevation and slope, NASADEM_HGT v001 | NASA JPL, read through Microsoft Planetary Computer | Site context for the three demo locations (not scored). Bundled. | https://earthdata.nasa.gov/esds/competitive-programs/measures/nasadem |

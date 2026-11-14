@@ -5,10 +5,14 @@ import './components/Extras.css'
 import { BackToTop } from './components/BackToTop'
 import { Credits } from './components/Credits'
 import { DataRoles } from './components/DataRoles'
+import { EvidencePanel, ModelCard } from './components/Evidence'
 import { Guide, Hero } from './components/Guide'
 import { PageNav, PageTabs, Pagination, Skeleton, TopBar } from './components/Chrome'
 import type { PageId } from './components/Chrome'
 import { RankList } from './components/RankList'
+import { SensitivityCard } from './components/SensitivityCard'
+import { sensitivityCheck } from './lib/sensitivity'
+import type { Sensitivity } from './lib/sensitivity'
 import { AssistantPage } from './components/AssistantPage'
 import { StartScreen } from './components/StartScreen'
 import { fetchAssistStatus } from './lib/assistClient'
@@ -56,6 +60,7 @@ type Ready = {
   series: DailySeries
   gridElevationM: number | null
   fromCache: boolean
+  snapshotDate: string | null
 }
 type Data = { status: 'loading' } | Failed | Ready
 type Result = (Failed | Ready) & { key: string }
@@ -150,6 +155,7 @@ function App() {
           series: r.series,
           gridElevationM: r.gridElevationM,
           fromCache: r.fromCache,
+          snapshotDate: r.snapshotDate,
         }),
       )
       .catch((e: Error) => {
@@ -286,6 +292,19 @@ function App() {
     if (window.location.hash !== `#/${id}`) window.location.hash = `/${id}`
     window.scrollTo({ top: 0 })
   }
+  // Sensitivity check: run in the background (about 0.6 s) once the Summary page is open, and show it only for the inputs it was run for.
+  const sensKey = JSON.stringify([site, start, inputs.scenario, inputs.weights, inputs.allowed, inputs.current, inputs.mode, inputs.irrigated, inputs.soil, inputs.elevationM])
+  const [sens, setSens] = useState<{ key: string; value: Sensitivity | null } | null>(null)
+  useEffect(() => {
+    if (!series || tab !== 'summary' || sens?.key === sensKey) return
+    const id = window.setTimeout(() => {
+      const value = sensitivityCheck(series, inputs.scenario, start, opts, currentCrops, inputs.weights, new Set(inputs.allowed))
+      setSens({ key: sensKey, value })
+    }, 60)
+    return () => window.clearTimeout(id)
+  }, [series, tab, sensKey, sens, start, opts, currentCrops, inputs.scenario, inputs.weights, inputs.allowed])
+  const sensNow = sens && sens.key === sensKey ? sens : null
+
   const [cardPage, setCardPage] = useState(1)
   const pageSize = isMobile ? 1 : 2
   const cardPages = Math.max(1, Math.ceil(strategies.length / pageSize))
@@ -423,6 +442,9 @@ function App() {
                     </p>
                   )}
                   <RankList strategies={strategies} baseline={baseline} bestId={bestBeatsCurrent ? (bestAlt?.id ?? null) : null} onOpen={openStrategy} />
+                  {bestAlt && !(sensNow && sensNow.value === null) && (
+                    <SensitivityCard result={sensNow?.value ?? null} topNames={bestAlt.result.crops.map((c) => c.name).join(' → ')} />
+                  )}
                   <PageNav tab="summary" onChange={goTo} />
                 </>
               )}
@@ -459,7 +481,7 @@ function App() {
                       )}
                       <li>
                         Based on {climate.years} complete years of daily NASA POWER data
-                        ({START_YEAR}–{END_YEAR}){data.fromCache ? ', loaded from this device’s saved copy' : ''}.
+                        ({START_YEAR}–{END_YEAR}){data.snapshotDate ? `, from a copy of the NASA POWER data downloaded on ${data.snapshotDate} and bundled with the app` : data.fromCache ? ', loaded from this device’s saved copy' : ', fetched live from NASA POWER'}.
                       </li>
                     </ul>
                   </section>
@@ -564,6 +586,8 @@ function App() {
               {ready && (
                 <>
                   <DataRoles />
+                  <EvidencePanel />
+                  <ModelCard />
                   <ShareBar
                     inputs={inputs}
                     beforePrint={() => flushSync(() => setSatOpen(true))}
@@ -590,8 +614,8 @@ function App() {
         <footer className="app-footer">
           <p className="muted privacy">
             <strong>Crop Rotation Explorer</strong>, a NASA Space Apps Challenge 2026 entry (Kuala Lumpur) for the challenge “Field Shift:
-            Adapting Farms with NASA Data”. Privacy: there are no accounts, ads or tracking code in this app. The location you choose is sent
-            from your browser to NASA POWER for the climate data, and to ISRIC SoilGrids only if you press the soil button; map pictures
+            Adapting Farms with NASA Data”. Privacy: there are no accounts, ads or tracking code in this app. For the three demo sites the climate data is a copy bundled with the app, so nothing about
+            your visit is sent to NASA; for any other point the location you choose is sent from your browser to NASA POWER, and to ISRIC SoilGrids only if you press the soil button; map pictures
             come from NASA GIBS. If you use the optional AI assistant, the messages you type and a short summary of the setup form (never
             your coordinates) go through this site’s server to Groq, which runs an open-weight model to write the replies; do not type
             personal details. Downloaded climate data is saved on your own device so it loads faster next time. The site is hosted on

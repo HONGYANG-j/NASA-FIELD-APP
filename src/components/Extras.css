@@ -184,3 +184,19 @@ button.ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--ac
   .card, .strategy, .glance { break-inside: avoid; }
   .app { max-width: none; padding: 0; }
 }
+
+/* evidence and model card */
+.checks { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+.checks th { text-align: left; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 6px 10px; border-bottom: 2px solid var(--line); }
+.checks td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.checks td:first-child { font-weight: 600; width: 28%; }
+.model-card h3 { margin: 10px 0 4px; font-size: 0.98rem; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 860px) {
+  .two-col { grid-template-columns: 1fr; }
+  .checks, .checks tbody, .checks tr, .checks td { display: block; }
+  .checks thead { display: none; }
+  .checks tr { padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .checks td { border: 0; padding: 2px 0; width: auto !important; }
+  .checks td:last-child { color: var(--muted); }
+}

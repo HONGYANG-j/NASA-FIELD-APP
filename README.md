@@ -23,7 +23,7 @@ NASA POWER needs no API key. Data is cached in the browser (`localStorage`) per 
 
 ## How it works
 
-1. `src/lib/power.ts`: fetches NASA POWER daily point data (T2M, T2M_MAX, T2M_MIN,
+1. `src/lib/power.ts`: loads NASA POWER daily point data (a bundled copy for the three demo sites, `src/data/power/*.json`, made by `scripts/fetch-power.mjs`; the live API for any other point; (T2M, T2M_MAX, T2M_MIN,
    PRECTOTCORR, GWETROOT, EVPTRNS) for 2005-2024, with retry (POWER resets connections when busy).
 2. `src/lib/climate.ts`: monthly climatology, yearly stats, linear trends with significance,
    what-if scenario (temperature offset, rainfall %), and per-season windows.
@@ -332,8 +332,37 @@ start screen and is never changed by the assistant. It does **not** score anythi
 - **Checked live (15 Nov 2026):** three real conversations on the deployed site with `openai/gpt-oss-20b`. The model recorded the rotation, irrigation,
   elevation, soil and priorities, asked the next question, and set "ready"; applying the proposal changed the form and the scores. The system prompt was
   tuned after the first run (the model recorded facts a turn late and gave terse replies). Three conversations is a smoke test, not an evaluation.
-- **Not verified:** how well it copes with other languages, unusual crops, or long or confused conversations; no farmer has used it; and behaviour under
+- **Malay (checked live, 15 Nov 2026):** a farmer writing in Bahasa Malaysia got Malay replies and the correct values (rice, rice, bare fallow; irrigation; water and soil priorities).
+  The first attempt answered in English until a Malay example was added to the instructions. Two short conversations only; the app interface itself is English.
+- **Not verified:** how well it copes with other languages beyond that, unusual crops, or long or confused conversations; no farmer has used it; and behaviour under
   Groq's free-tier limits (limits are per organisation and per model; check the Groq console). If Groq is busy the page says so and the manual setup still works.
+
+## Production readiness (an honest review)
+
+What was added on 15 Nov 2026 to move a competition prototype toward a service that could be piloted, **without changing any score**:
+
+- **Reliability:** the three demo sites load from a bundled copy of the NASA POWER record (`src/data/power/`, about 230 KB each), so they open instantly and do not
+  depend on the live API (which sometimes resets connections). Custom points still use the live API with retries and a saved copy on the device. Tests check
+  every snapshot (7,305 days, no gaps, correct grid elevation) and the app shows which source it used.
+- **Uncertainty:** a sensitivity check re-runs the scoring 9 times with the weather record nudged by +/-1 C and +/-10% rain and reports whether the top alternative
+  and its lead survive (`src/lib/sensitivity.ts`). It tests our model's sensitivity; it is not a forecast.
+- **Transparency:** in-app "How we checked it" (real cross-check numbers and what each check does not show) and "Intended use and limits" (meant for, not meant for,
+  known limits, version).
+- **Safety nets:** an error boundary replaces a blank screen with a recovery page; the AI assistant has a validated, rate-limited, secret-keyed server route.
+- **Security headers** (`public/_headers`): a Content-Security-Policy that allows only this site, NASA POWER, ISRIC SoilGrids and NASA GIBS tiles; no framing;
+  `nosniff`; strict referrer policy; camera, microphone and location denied. Checked with the real policy enforced: zero violations while using the map, live data,
+  SoilGrids and the assistant route.
+- **Accessibility:** checked by script on every page in light and dark mode: every control has a name or label, headings and ids are valid, text contrast passes
+  (the hero gradient was darkened to fix small text on phones). This is **not** a full WCAG audit and was not tested with a screen reader.
+
+What is still missing before real production use (so please do not read the above as "production-ready"):
+
+- No comparison with measured yields, field trials or ground-truth weather; no farmer or extension-officer testing; no independent agronomist review.
+- Several crop parameters and most soil rules are unsourced judgement; stored soil water is barely modelled; seasons are fixed at four months.
+- No local soil, price, labour or equipment data; POWER cells are about 50 km wide.
+- No monitoring or alerting, no uptime commitment, no cost control beyond Groq's own limits, no data-retention policy beyond "nothing is stored".
+- English only (the AI assistant answers in the user's language but the interface is not translated); no formal privacy policy or terms of service beyond the footer.
+- Dependencies on third-party services (NASA POWER for custom points, Groq, ISRIC, GIBS) can change or disappear; model names on Groq are retired from time to time.
 
 ## Use of AI (SI) tools (required in the submission)
 
