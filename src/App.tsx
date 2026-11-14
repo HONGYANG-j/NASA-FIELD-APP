@@ -9,6 +9,11 @@ import { Guide, Hero } from './components/Guide'
 import { PageNav, PageTabs, Pagination, Skeleton, TopBar } from './components/Chrome'
 import type { PageId } from './components/Chrome'
 import { RankList } from './components/RankList'
+import { AssistantPage } from './components/AssistantPage'
+import { StartScreen } from './components/StartScreen'
+import { fetchAssistStatus } from './lib/assistClient'
+import type { AssistStatus } from './lib/assistClient'
+import { applyPatch } from './lib/assistSchema'
 import { useMedia } from './lib/useMedia'
 import { ScoreRing } from './components/ScoreRing'
 import { ShareBar } from './components/ShareBar'
@@ -91,12 +96,13 @@ function initialSetup(): Inputs {
   return merged
 }
 
-const PAGE_IDS: PageId[] = ['setup', 'summary', 'climate', 'satellite', 'rotations', 'data']
+const PAGE_IDS: PageId[] = ['start', 'setup', 'assistant', 'summary', 'climate', 'satellite', 'rotations', 'data']
 
-/** The page named in the address (#/climate), or the summary. */
+/** The page named in the address (#/climate). With none: the summary for a share link, otherwise the start screen. */
 function readTab(): PageId {
   const id = window.location.hash.replace(/^#\/?/, '')
-  return (PAGE_IDS as string[]).includes(id) ? (id as PageId) : 'summary'
+  if ((PAGE_IDS as string[]).includes(id)) return id as PageId
+  return window.location.search.includes('p=') ? 'summary' : 'start'
 }
 
 function App() {
@@ -303,11 +309,35 @@ function App() {
   }
   const panel = (id: PageId) => ({ id: `page-${id}`, role: 'tabpanel', 'aria-labelledby': `tab-${id}`, hidden: tab !== id, className: 'page-panel' })
   const ready = data.status === 'ready'
+  // Is the AI assistant switched on for this site? (null while we ask)
+  const [assistStatus, setAssistStatus] = useState<AssistStatus | null>(null)
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetchAssistStatus(ctrl.signal).then((s) => {
+      if (!ctrl.signal.aborted) setAssistStatus(s)
+    })
+    return () => ctrl.abort()
+  }, [])
 
   return (
     <>
       <TopBar place={placeName} onShare={() => goTo('data')} />
       <div className="app">
+        {tab === 'start' ? (
+          <StartScreen
+            inputs={inputs}
+            loading={data.status === 'loading'}
+            failed={data.status === 'error'}
+            status={assistStatus}
+            onPreset={onPreset}
+            onPickPoint={onPickPoint}
+            onLoadCustom={onLoadCustom}
+            onChange={patch}
+            onChoose={(path) => goTo(path === 'ai' ? 'assistant' : isMobile ? 'setup' : 'summary')}
+            onSkip={() => goTo('summary')}
+          />
+        ) : (
+          <>
         <PageTabs tab={tab} onChange={goTo} isMobile={isMobile} />
 
         <div className="layout">
@@ -326,13 +356,24 @@ function App() {
           </aside>
 
           <main className="app-main">
-            {data.status === 'loading' && tab !== 'setup' && <Skeleton />}
-            {data.status === 'error' && tab !== 'setup' && (
+            {data.status === 'loading' && tab !== 'setup' && tab !== 'assistant' && <Skeleton />}
+            {data.status === 'error' && tab !== 'setup' && tab !== 'assistant' && (
               <div className="status error" role="alert">
                 <p>{data.error}</p>
                 <button type="button" onClick={() => { setFormError(null); setReloadKey((k) => k + 1) }}>Try again</button>
               </div>
             )}
+
+            <div {...panel('assistant')}>
+              <AssistantPage
+                inputs={inputs}
+                place={inputs.presetId === CUSTOM_PRESET_ID ? 'a custom point chosen by the user' : placeName}
+                status={assistStatus}
+                onApply={(p) => setInputs((prev) => applyPatch(prev, p))}
+                onSeeResults={() => goTo('summary')}
+                onSetup={() => goTo(isMobile ? 'setup' : 'summary')}
+              />
+            </div>
 
             <div {...panel('summary')}>
               <Hero />
@@ -543,13 +584,17 @@ function App() {
             </div>
           </main>
         </div>
+          </>
+        )}
 
         <footer className="app-footer">
           <p className="muted privacy">
             <strong>Crop Rotation Explorer</strong>, a NASA Space Apps Challenge 2026 entry (Kuala Lumpur) for the challenge “Field Shift:
             Adapting Farms with NASA Data”. Privacy: there are no accounts, ads or tracking code in this app. The location you choose is sent
             from your browser to NASA POWER for the climate data, and to ISRIC SoilGrids only if you press the soil button; map pictures
-            come from NASA GIBS. Downloaded climate data is saved on your own device so it loads faster next time. The site is hosted on
+            come from NASA GIBS. If you use the optional AI assistant, the messages you type and a short summary of the setup form (never
+            your coordinates) go through this site’s server to Groq, which runs an open-weight model to write the replies; do not type
+            personal details. Downloaded climate data is saved on your own device so it loads faster next time. The site is hosted on
             Cloudflare, which, like any web host, can see that a page was requested.
           </p>
           <details>

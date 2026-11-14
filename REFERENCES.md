@@ -41,7 +41,9 @@ Licence of this project's original code and content: **Apache License 2.0** (see
 | Vitest 3 | MIT | Tests |
 | TypeScript | Apache-2.0 | Language and type checking |
 | oxlint | MIT | Linting |
-| Wrangler 4 (Cloudflare Workers static hosting) | MIT or Apache-2.0 | Deployment |
+| Wrangler 4 (Cloudflare Workers static hosting and the /api/assist Worker) | MIT or Apache-2.0 | Deployment |
+| Groq API (hosted inference), https://console.groq.com/docs/models | Service, used under its terms | Runs the optional "Ask AI" assistant |
+| OpenAI gpt-oss-20b, model weights, via Groq (`openai/gpt-oss-20b`) | Apache-2.0 | The model behind "Ask AI" |
 | h5wasm 0.10 (NIST), used only by `scripts/extract-smap.mjs`, not part of the app | see its LICENSE.txt | Reading the SMAP NetCDF-4 files once, offline |
 
 Versions are in `package.json` and `package-lock.json`. No web fonts, photos, logos or music are used in the app. The icons are drawn
@@ -51,7 +53,12 @@ for this app. The app uses no NASA logos, flags or mission identifiers.
 
 Claude (Anthropic), through Claude Code, was used to write and revise: the application code, the data-processing scripts in `scripts/`,
 the automated tests, the plain-language wording in the app, this documentation, and drafts of the submission text and video scripts.
-The team reviewed the results and checked numbers against the NASA data and the FAO tables listed above. The app contains no AI model
-at run time and makes no AI calls. AI-written code and text can contain mistakes. Values that could not be sourced are labelled
+The team reviewed the results and checked numbers against the NASA data and the FAO tables listed above.
+
+At run time the app has one optional AI feature: the "Ask AI" assistant, an open-weight model (gpt-oss-20b, Apache-2.0) hosted by Groq. It only proposes
+values for the setup form, which are validated against a whitelist and confirmed by the user; it never calculates or changes a score. The messages the user
+types and a short summary of the form (no coordinates) are sent to Groq through the site's server.
+
+AI-written code and text can contain mistakes. Values that could not be sourced are labelled
 "unverified" in the code and the app. Code and data files that were produced with the help of AI are acknowledged here and in the
 `ai-assistance` meta tag of `index.html`.

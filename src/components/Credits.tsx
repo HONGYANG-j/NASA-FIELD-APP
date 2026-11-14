@@ -33,9 +33,11 @@ export function Credits() {
           for this app, and the map uses Leaflet’s own controls.
         </li>
         <li>
-          <strong>Use of AI.</strong> Claude (Anthropic), through Claude Code, helped write the code, the data-processing scripts,
-          the tests and the wording. The team reviewed and tested the results. The app contains no AI model at run time and makes
-          no AI calls. AI-written code and text can contain mistakes; values we could not source are labelled as unverified.
+          <strong>Use of AI.</strong> (1) Claude (Anthropic), through Claude Code, helped write the code, the data-processing scripts,
+          the tests and the wording; the team reviewed and tested the results. (2) The optional “Ask AI” assistant runs an open-weight
+          model (OpenAI gpt-oss-20b, Apache-2.0) hosted by Groq. It only proposes values for the same setup form a person can fill in
+          by hand, every value is checked against a whitelist and confirmed by you, and it never calculates or changes a score: the
+          scores come from NASA POWER data and FAO tables. AI can be wrong; values we could not source are labelled as unverified.
         </li>
         <li>
           <strong>Not NASA.</strong> This is an independent entry for the NASA Space Apps Challenge. It is not affiliated with,

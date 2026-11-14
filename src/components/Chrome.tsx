@@ -1,7 +1,7 @@
 import type { KeyboardEvent, ReactNode } from 'react'
 
 /** The pages of the app. "setup" (the farm inputs) is its own page on phones only; on desktop it is the side panel. */
-export type PageId = 'setup' | 'summary' | 'climate' | 'satellite' | 'rotations' | 'data'
+export type PageId = 'start' | 'setup' | 'assistant' | 'summary' | 'climate' | 'satellite' | 'rotations' | 'data'
 
 const svg = (children: ReactNode) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -9,20 +9,21 @@ const svg = (children: ReactNode) => (
   </svg>
 )
 
-const PAGES: { id: PageId; label: string; mobileOnly?: boolean; icon: ReactNode }[] = [
-  { id: 'setup', label: 'Setup', mobileOnly: true, icon: svg(<><path d="M4 7h10" /><path d="M18 7h2" /><circle cx="16" cy="7" r="2" /><path d="M4 17h2" /><path d="M10 17h10" /><circle cx="8" cy="17" r="2" /></>) },
+const PAGES: { id: PageId; label: string; short?: string; mobileOnly?: boolean; flow?: false; icon: ReactNode }[] = [
+  { id: 'assistant', label: 'Ask AI', flow: false, icon: svg(<><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8Z" /><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8Z" /></>) },
+  { id: 'setup', label: 'Setup', mobileOnly: true, flow: false, icon: svg(<><path d="M4 7h10" /><path d="M18 7h2" /><circle cx="16" cy="7" r="2" /><path d="M4 17h2" /><path d="M10 17h10" /><circle cx="8" cy="17" r="2" /></>) },
   { id: 'summary', label: 'Summary', icon: svg(<><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>) },
   { id: 'climate', label: 'Climate', icon: svg(<><path d="M7 18a4 4 0 0 1-.6-7.96A6 6 0 0 1 18 9.5 4 4 0 0 1 17 18Z" /></>) },
   { id: 'satellite', label: 'Satellite', icon: svg(<><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18" /><path d="M12 3a14 14 0 0 0 0 18" /></>) },
   { id: 'rotations', label: 'Rotations', icon: svg(<><path d="M20 11a8 8 0 0 0-14-4l-2 2" /><path d="M4 4v5h5" /><path d="M4 13a8 8 0 0 0 14 4l2-2" /><path d="M20 20v-5h-5" /></>) },
-  { id: 'data', label: 'Data & share', icon: svg(<><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5" /><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" /></>) },
+  { id: 'data', label: 'Data & share', short: 'Data', icon: svg(<><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5" /><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" /></>) },
 ]
 
 export function TopBar({ place, onShare }: { place: string; onShare: () => void }) {
   return (
     <div className="topbar-wrap no-print">
       <div className="topbar">
-        <a className="brand" href="#/summary" aria-label="Crop Rotation Explorer, home">
+        <a className="brand" href="#/start" aria-label="Crop Rotation Explorer, start page">
           <svg viewBox="0 0 64 64" aria-hidden="true">
             <rect width="64" height="64" rx="16" fill="currentColor" />
             <path d="M32 52V30" stroke="#fff" strokeWidth="4" strokeLinecap="round" />
@@ -31,10 +32,10 @@ export function TopBar({ place, onShare }: { place: string; onShare: () => void 
           </svg>
           <span>Crop Rotation Explorer</span>
         </a>
-        <span className="topbar-place" title="Location being analysed">
+        <a className="topbar-place" href="#/start" title="Location being analysed. Click to change it.">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z" /><circle cx="12" cy="10" r="2.5" /></svg>
           {place}
-        </span>
+        </a>
         <span className="topbar-chip">NASA POWER · 2005–2024</span>
         <button type="button" className="topbar-share" onClick={onShare}>Share</button>
       </div>
@@ -69,7 +70,8 @@ export function PageTabs({ tab, onChange, isMobile }: { tab: PageId; onChange: (
             onKeyDown={(e) => onKey(e, i)}
           >
             {p.icon}
-            <span>{p.label}</span>
+            <span className="lbl-long">{p.label}</span>
+            <span className="lbl-short">{p.short ?? p.label}</span>
           </button>
         ))}
       </div>
@@ -79,7 +81,7 @@ export function PageTabs({ tab, onChange, isMobile }: { tab: PageId; onChange: (
 
 /** Previous / next page buttons at the end of a page. */
 export function PageNav({ tab, onChange }: { tab: PageId; onChange: (id: PageId) => void }) {
-  const flow = PAGES.filter((p) => !p.mobileOnly)
+  const flow = PAGES.filter((p) => !p.mobileOnly && p.flow !== false)
   const i = flow.findIndex((p) => p.id === tab)
   const prev = i > 0 ? flow[i - 1] : null
   const next = i >= 0 && i < flow.length - 1 ? flow[i + 1] : null
