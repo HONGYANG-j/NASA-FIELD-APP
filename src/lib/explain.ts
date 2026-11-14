@@ -201,7 +201,7 @@ export function explain(
     ...soilGaps(table.soil, soilFromGrids),
     sourceGap(r.crops),
     'Market prices, seed availability, labour and equipment are not modelled; "income" is only a rough relative value.',
-    'NASA POWER is gridded model/satellite data (about 50 km cells): it will not capture your exact field. Temperature is corrected for height only if you enter your field elevation; rainfall is never corrected. Satellite vegetation, evapotranspiration and temperature layers (MODIS, Landsat) are bundled only for the demo sites and are shown as evidence, not used in the scores; SMAP soil moisture is not included.',
+    'NASA POWER is gridded model/satellite data (about 50 km cells): it will not capture your exact field. Temperature is corrected for height only if you enter your field elevation; rainfall is never corrected. Satellite vegetation, evapotranspiration and temperature layers (MODIS, Landsat) are bundled only for the demo sites and are shown as evidence, not used in the scores; SMAP soil moisture is shown for Kedah for one year (2024) only, also as evidence.',
     'Water supply counts rain plus a share of root-zone moisture. It ignores water stored from earlier seasons, so dry-climate or rainfed scores can look pessimistic; tick "I can irrigate" if you have water access. Crop water need is estimated from temperature (FAO-56); against MODIS satellite potential evapotranspiration it ran about 10% lower in Iowa and about 25% lower in Kedah, so needs may be somewhat underestimated.',
     'Scores rank options; they do not predict yield. Final decisions belong to the farmer and local experts.',
   ]

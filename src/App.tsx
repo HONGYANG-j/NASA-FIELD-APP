@@ -17,6 +17,7 @@ import {
 } from './lib/climate'
 import { LandsatPanel } from './components/LandsatPanel'
 import { ModisPanel } from './components/ModisPanel'
+import { SmapPanel } from './components/SmapPanel'
 import { VegetationChart } from './components/VegetationChart'
 import { explain, monthName as monthLabel, satelliteLine, slotLabel, slotStartMonth } from './lib/explain'
 import { loadDaily } from './lib/power'
@@ -329,6 +330,7 @@ function App() {
                 )}
                 <LandsatPanel presetId={inputs.presetId} />
                 <ModisPanel presetId={inputs.presetId} startMonth={table.startMonth} mode={table.mode} />
+                <SmapPanel presetId={inputs.presetId} />
               </section>
 
               {(inputs.scenario.dTemp !== 0 || inputs.scenario.rainPct !== 0) && (
@@ -373,7 +375,7 @@ function App() {
             </li>
             <li>
               Other data: MODIS vegetation, evapotranspiration, temperature and growing-season dates (NASA, served by the
-              ORNL DAAC), Landsat and NASADEM elevation (NASA/USGS, served by Microsoft Planetary Computer) and NASA GIBS
+              ORNL DAAC), SMAP soil moisture (NASA NSIDC DAAC; Kedah, 2024 only), Landsat and NASADEM elevation (NASA/USGS, served by Microsoft Planetary Computer) and NASA GIBS
               imagery. These satellite layers are bundled for the demo sites only. Soil can come from ISRIC SoilGrids
               (not NASA, beta). Crop requirements come from FAO tables.
             </li>
@@ -385,7 +387,7 @@ function App() {
             <li>
               Crop characteristics are approximate reference values and must be checked locally.
               Not included: satellite data outside the demo sites or in the scores (it is shown as evidence only),
-              SMAP soil moisture, measured soil data for your field, and prices.
+              SMAP soil moisture other than one year (2024) for Kedah, measured soil data for your field, and prices.
             </li>
             <li>
               Built with help from AI tools (Claude by Anthropic) for code and wording; the team reviewed the results.

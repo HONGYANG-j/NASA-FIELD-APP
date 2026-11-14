@@ -1,0 +1,6 @@
+.smap-panel { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; }
+.smap-panel h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.smap-panel .descriptive { font-size: 0.85rem; color: var(--muted); margin: 0 0 6px; }
+
+.chart-smap { fill: var(--accent); opacity: 0.8; }
+.bar-key.smap { background: var(--accent); }

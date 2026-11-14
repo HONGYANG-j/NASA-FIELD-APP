@@ -47,7 +47,7 @@ Modes: **3 seasons per year** (tropics) or **1 crop per year over 3 years** (tem
 - NASA POWER is ~50 km gridded model data. Temperature is corrected for elevation only if you enter the field
   elevation (6.5 C per 1000 m); rainfall is never corrected. Satellite-era rainfall trends need care.
 - Satellite vegetation (MODIS NDVI) is bundled only for Kedah and Iowa, where MODIS land cover confirms the pixel is cropland. It describes what is growing at one 250 m pixel, is not used to score rotations, and has no layer for Cameron Highlands (its farms are too fragmented for MODIS pixels).
-- SMAP soil moisture and ECOSTRESS are not integrated: they need a free NASA Earthdata login and heavy processing, which a no-login browser app cannot do.
+- SMAP soil moisture is bundled for Kedah only, for 2024 only, as descriptive evidence (see "SMAP soil moisture"); it is not used to score rotations. ECOSTRESS is not integrated: it needs a free NASA Earthdata login and heavy processing, which a no-login browser app cannot do.
 - Landsat 30 m NDVI is bundled only for Kedah and Iowa (one pixel each, 2022-2025, 12-44 clear dates a year after cloud masking, depending on site and year). Cameron Highlands has none: ESA WorldCover maps the preset as built-up and finds almost no cropland nearby (see "Landsat NDVI and NASADEM" below). The pixel is not your field, it is evidence only, and it is not used to score rotations. NASADEM elevation and slope are bundled for all three demo locations; they are not used for the temperature correction (that still uses the elevation you type in). Slope from 30 m radar data is noisy on flat ground.
 - MODIS evapotranspiration, land-surface temperature, leaf area and growing-season dates are bundled only for Kedah and Iowa, are shown as descriptive evidence, and are not used to score rotations. The cloud-quality (QC) bands were not applied, land-surface temperature has no value under cloud (Kedah has valid daytime values for only 94 of 183 composites), and nothing was checked against ground data (see "MODIS evapotranspiration, surface temperature, leaf area and growing-season dates").
 - Scores rank options; they do not predict yield.
@@ -113,6 +113,30 @@ against rain gauges.
   a test keeps the wording and the numbers in step). Cameron Highlands and custom locations show no such note.
 - **Limits:** a 0.5 degree box average is compared with one POWER grid cell, so some of the difference is the area. The IMERG file for Cameron
   Highlands was not provided, so there is no comparison there. IMERG was not used in any score.
+
+## SMAP soil moisture (Kedah, 2024 only; evidence, not scored)
+
+NASA's SMAP soil moisture is the first dataset named in the Field Shift resources. The app shows **one year (2024) for the Kedah demo site only**,
+as a month-by-month chart under the MODIS panel. It is descriptive evidence: it is **not** used in any score. Iowa and Cameron Highlands show
+"not bundled".
+
+- **Route that works:** NASA Earthdata Search (free Earthdata login), collection SPL3SMP_E V006 (SMAP Enhanced L3 radiometer, daily, 9 km),
+  using the Harmony "Customize" options: spatial box 100.10,6.00,100.60,6.50 (Kedah), variable groups Soil_Moisture_Retrieval_Data_AM and _PM
+  (100 variables), output NetCDF-4, no reprojection, 1 Jan - 31 Dec 2024. The public ORNL MODIS service lists SMAP but returned "no data"
+  at five test points, so it is not a route. The NSIDC page's "Download Script" would fetch the untrimmed global files (about 630 MB each,
+  about 880 GB for 2022-2025) and must not be used.
+- **Size:** 366 files (one per day, none missing, all valid HDF5), 244 MB trimmed; bundled as `src/data/smap/kedah.json` (about 10 KB, one row per day).
+- **How it was turned into numbers:** `scripts/extract-smap.mjs` (needs `npm install --no-save h5wasm`, NIST's HDF5 reader, not an app dependency).
+  Per file there is an AM and a PM group, each 8 x 6 cells of 9 km. A cell counts when `soil_moisture` is inside the product's documented valid
+  range 0.02-0.5 cm3/cm3 (fill -9999) **and** bit 0 of `retrieval_qual_flag` ("retrieval recommended") is set. The set-bit-means-true reading
+  comes from the file's flag description and from the data (99% of in-range cells have it set); it was not validated against anything else.
+  AM and PM cells are pooled into one box mean per day; a month is the mean of its daily means and is drawn only with at least 3 such days.
+- **What 2024 shows for the Kedah box:** a usable value on 137 of 366 days (about every second or third day, never all 48 cells). Monthly means run
+  from 0.17 (March) and 0.19 (February) to 0.41-0.43 in May, June, October and November. 1,499 cells (4.3% of 35,136) were above 0.5, mostly in
+  May, June, October and November, and are excluded, so those months are probably biased low. The monthly shape agrees with GPM IMERG rain over
+  the same box: monthly SMAP against same-month rain r = 0.55, against the previous month's rain r = 0.75 (12 points, so only a sanity check).
+- **Not done / not checked:** one year only (not a climate); not checked against ground sensors; very high values over flooded paddy may be
+  unreliable; Cameron Highlands and Iowa not ordered; the bundled file does not feed the rotation scores.
 
 ## Verification log
 
@@ -184,7 +208,7 @@ temperature).
   page was read for MCD15A2H, which is an inference), but the MCD12Q2 `QA_Overall` codes and the layer-year convention of MCD12Q2 were not found in a
   readable official source: the chart shows dates as delivered. The "days since 1-1-1970" unit comes from the service's `/bands` output, and
   the dates agree with the NDVI peaks. No ground data (flux towers, field phenology) was used. PET was not bundled (an earlier scratch cross-check
-  used it). SMAP, ECOSTRESS and GEDI returned "no data" at our points and are skipped.
+  used it). SMAP, ECOSTRESS and GEDI returned "no data" from this service at our points and are skipped here (SMAP was obtained through Earthdata Search instead, see "SMAP soil moisture").
 
 ## Landsat NDVI and NASADEM (Microsoft Planetary Computer)
 
