@@ -3,7 +3,7 @@
 .modis-panel h4 { margin: 14px 0 2px; font-size: 0.95rem; }
 .modis-panel .descriptive { font-size: 0.85rem; color: var(--muted); margin: 0 0 6px; }
 
-.chart-modis-et { fill: var(--bar); }
+.chart-modis-et { fill: var(--accent); opacity: 0.8; }
 .chart-modis-lai { fill: var(--good); opacity: 0.8; }
 .chart-modis-line { stroke-width: 2.5; }
 .chart-modis-dot { stroke: none; }
@@ -11,7 +11,7 @@
 .chart-modis-night { color: var(--accent); }
 .chart-modis-day .chart-modis-line, .chart-modis-night .chart-modis-line { stroke: currentColor; }
 .chart-modis-day .chart-modis-dot, .chart-modis-night .chart-modis-dot { fill: currentColor; }
-.bar-key.modis-et { background: var(--bar); }
+.bar-key.modis-et { background: var(--accent); }
 .bar-key.modis-lai { background: var(--good); }
 .bar-key.modis-day { background: var(--line-series); }
 .bar-key.modis-night { background: var(--accent); }

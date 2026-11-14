@@ -6,6 +6,10 @@ import { BackToTop } from './components/BackToTop'
 import { Credits } from './components/Credits'
 import { DataRoles } from './components/DataRoles'
 import { Guide, Hero } from './components/Guide'
+import { PageNav, PageTabs, Pagination, Skeleton, TopBar } from './components/Chrome'
+import type { PageId } from './components/Chrome'
+import { RankList } from './components/RankList'
+import { useMedia } from './lib/useMedia'
 import { ScoreRing } from './components/ScoreRing'
 import { ShareBar } from './components/ShareBar'
 import { decodeShare } from './lib/share'
@@ -85,6 +89,14 @@ function initialSetup(): Inputs {
   // The crops of the current rotation must be among the crops offered.
   merged.allowed = Array.from(new Set([...base.allowed, ...merged.current]))
   return merged
+}
+
+const PAGE_IDS: PageId[] = ['setup', 'summary', 'climate', 'satellite', 'rotations', 'data']
+
+/** The page named in the address (#/climate), or the summary. */
+function readTab(): PageId {
+  const id = window.location.hash.replace(/^#\/?/, '')
+  return (PAGE_IDS as string[]).includes(id) ? (id as PageId) : 'summary'
 }
 
 function App() {
@@ -251,254 +263,329 @@ function App() {
   const bestAlt = strategies.slice(1).reduce<(typeof strategies)[number] | null>((a, b) => (!a || b.result.overall > a.result.overall ? b : a), null)
   const bestBeatsCurrent = bestAlt !== null && bestAlt.result.overall > baseline + 0.5
 
+  const placeName =
+    inputs.presetId === CUSTOM_PRESET_ID
+      ? `Custom point ${inputs.lat}, ${inputs.lon}`
+      : (PRESETS.find((p) => p.id === inputs.presetId)?.name ?? '')
+  const isMobile = useMedia('(max-width: 860px)')
+  const [tabRaw, setTabRaw] = useState<PageId>(readTab)
+  useEffect(() => {
+    const on = () => setTabRaw(readTab())
+    window.addEventListener('hashchange', on)
+    return () => window.removeEventListener('hashchange', on)
+  }, [])
+  // "Setup" is a page on phones only; on a wide screen the inputs are the side panel.
+  const tab: PageId = tabRaw === 'setup' && !isMobile ? 'summary' : tabRaw
+  const goTo = (id: PageId) => {
+    if (window.location.hash !== `#/${id}`) window.location.hash = `/${id}`
+    window.scrollTo({ top: 0 })
+  }
+  const [cardPage, setCardPage] = useState(1)
+  const pageSize = isMobile ? 1 : 2
+  const cardPages = Math.max(1, Math.ceil(strategies.length / pageSize))
+  const shownCardPage = Math.min(cardPage, cardPages)
+  // Printing shows every rotation and every section, not only the page on screen.
+  const [printAll, setPrintAll] = useState(false)
+  useEffect(() => {
+    const before = () => flushSync(() => { setPrintAll(true); setSatOpen(true) })
+    const after = () => setPrintAll(false)
+    window.addEventListener('beforeprint', before)
+    window.addEventListener('afterprint', after)
+    return () => {
+      window.removeEventListener('beforeprint', before)
+      window.removeEventListener('afterprint', after)
+    }
+  }, [])
+  const shownStrategies = printAll ? strategies : strategies.slice((shownCardPage - 1) * pageSize, shownCardPage * pageSize)
+  const openStrategy = (index: number) => {
+    setCardPage(Math.floor(index / pageSize) + 1)
+    goTo('rotations')
+  }
+  const panel = (id: PageId) => ({ id: `page-${id}`, role: 'tabpanel', 'aria-labelledby': `tab-${id}`, hidden: tab !== id, className: 'page-panel' })
+  const ready = data.status === 'ready'
+
   return (
-    <div className="app">
-      <Hero />
-      <Guide />
+    <>
+      <TopBar place={placeName} onShare={() => goTo('data')} />
+      <div className="app">
+        <PageTabs tab={tab} onChange={goTo} isMobile={isMobile} />
 
-      <nav className="jump-nav no-print" aria-label="Jump to a section">
-        <a href="#farm">Your farm</a>
-        <a href="#climate">Climate</a>
-        <a href="#satellite">Satellite</a>
-        <a href="#rotations">Rotations</a>
-        <a href="#data">NASA data</a>
-        <a href="#advice">Advice</a>
-      </nav>
+        <div className="layout">
+          <aside id="farm" className={tab === 'setup' ? '' : 'mobile-hidden'}>
+            <Controls
+              inputs={inputs}
+              onPickPoint={onPickPoint}
+              autoMonth={autoMonth}
+              onChange={patch}
+              onPreset={onPreset}
+              onLoadCustom={onLoadCustom}
+              loading={data.status === 'loading'}
+              gridElevationM={gridElev}
+            />
+            <button type="button" className="mobile-only see-results" onClick={() => goTo('summary')}>See results →</button>
+          </aside>
 
-      <div className="layout">
-        <aside id="farm">
-          <Controls
-            inputs={inputs}
-            onPickPoint={onPickPoint}
-            autoMonth={autoMonth}
-            onChange={patch}
-            onPreset={onPreset}
-            onLoadCustom={onLoadCustom}
-            loading={data.status === 'loading'}
-            gridElevationM={gridElev}
-          />
-        </aside>
+          <main className="app-main">
+            {data.status === 'loading' && tab !== 'setup' && <Skeleton />}
+            {data.status === 'error' && tab !== 'setup' && (
+              <div className="status error" role="alert">
+                <p>{data.error}</p>
+                <button type="button" onClick={() => { setFormError(null); setReloadKey((k) => k + 1) }}>Try again</button>
+              </div>
+            )}
 
-        <main className="app-main">
-          {data.status === 'loading' && <p className="status" role="status">Loading 20 years of NASA POWER data…</p>}
-          {data.status === 'error' && (
-            <div className="status error" role="alert">
-              <p>{data.error}</p>
-              <button type="button" onClick={() => { setFormError(null); setReloadKey((k) => k + 1) }}>Try again</button>
-            </div>
-          )}
-
-          {data.status === 'ready' && climate && table && (
-            <>
-              <p className="print-only">
-                Setup: {inputs.presetId === CUSTOM_PRESET_ID ? `custom point ${inputs.lat}, ${inputs.lon}` : (PRESETS.find((p) => p.id === inputs.presetId)?.name ?? '')}
-                {' '}({site.lat}, {site.lon}); {inputs.mode === 'seasons' ? '3 seasons per year' : '1 main crop per year, 3-year cycle'};
-                {inputs.irrigated ? ' irrigation available' : ' rainfed'}; current rotation: {inputs.current.map((c) => CROP_BY_ID[c]?.name ?? c).join(', ')}.
-                Printed from {window.location.origin}.
-              </p>
-              {bestAlt && (
-                <section className="glance" aria-label="Result at a glance">
-                  <div className="glance-rings">
-                    <div>
-                      <ScoreRing value={baseline} label={`Current rotation scores ${Math.round(baseline)} out of 100`} muted />
-                      <div className="ring-cap">Current</div>
-                    </div>
-                    <span className="glance-vs" aria-hidden="true">→</span>
-                    <div>
-                      <ScoreRing value={bestAlt.result.overall} label={`${bestAlt.title} scores ${Math.round(bestAlt.result.overall)} out of 100`} />
-                      <div className="ring-cap">Highest alternative</div>
-                    </div>
-                  </div>
-                  <div>
-                    <h2>At a glance</h2>
-                    {bestBeatsCurrent ? (
-                      <p>
-                        For your priorities, <strong>{bestAlt.title}</strong> scores{' '}
-                        <strong>{Math.round(bestAlt.result.overall) - Math.round(baseline)} points higher</strong> than your current rotation:
-                      </p>
-                    ) : (
-                      <p>Your current rotation scores as high as any alternative found for your priorities. The best alternative is:</p>
-                    )}
-                    <p className="path">{bestAlt.result.crops.map((c) => c.name).join(' → ')}</p>
-                    <p className="fine">
-                      Scores rank options for your inputs and 20 years of NASA POWER weather. They are not yield forecasts.
-                    </p>
-                  </div>
-                </section>
-              )}
-
-              <section className="card" id="climate">
-                <h2>Climate at this location</h2>
-                <ClimateChart months={climate.months} />
-                <p className="legend">
-                  <span className="key bar-key" /> Rainfall per month (mm) &nbsp;
-                  <span className="key line-key" /> Average temperature (°C)
-                </p>
-                <ul className="plain-list">
-                  <li>
-                    Temperature trend:{' '}
-                    <strong>{(climate.temp.slope * 10).toFixed(2)} °C per decade</strong>{' '}
-                    {climate.temp.significant ? '(unlikely to be chance)' : '(within normal year-to-year variation)'}.
-                  </li>
-                  <li>
-                    Rainfall trend:{' '}
-                    <strong>{Math.round(climate.rain.slope * 10)} mm per decade</strong>{' '}
-                    {climate.rain.significant ? '(unlikely to be chance)' : '(within normal variation)'}.
-                    Satellite-era rainfall products can change over time, so treat this trend with care.
-                  </li>
-                  {tempOffset !== 0 && (
-                    <li>
-                      Temperatures adjusted by <strong>{tempOffset > 0 ? '+' : ''}{tempOffset.toFixed(1)} °C</strong>:
-                      your field is at {inputs.elevationM} m but NASA’s grid cell is at about {Math.round(gridElev ?? 0)} m
-                      (air cools roughly 6.5 °C per 1,000 m). Rainfall is not adjusted.
-                    </li>
+            <div {...panel('summary')}>
+              <Hero />
+              <Guide />
+              {data.status === 'ready' && climate && table && (
+                <>
+                  <p className="print-only">
+                    Setup: {placeName} ({site.lat}, {site.lon}); {inputs.mode === 'seasons' ? '3 seasons per year' : '1 main crop per year, 3-year cycle'};
+                    {inputs.irrigated ? ' irrigation available' : ' rainfed'}; current rotation: {inputs.current.map((c) => CROP_BY_ID[c]?.name ?? c).join(', ')}.
+                    Printed from {window.location.origin}.
+                  </p>
+                  {bestAlt && (
+                    <section className="glance" aria-label="Result at a glance">
+                      <div className="glance-rings">
+                        <div>
+                          <ScoreRing value={baseline} label={`Current rotation scores ${Math.round(baseline)} out of 100`} muted />
+                          <div className="ring-cap">Current</div>
+                        </div>
+                        <span className="glance-vs" aria-hidden="true">→</span>
+                        <div>
+                          <ScoreRing value={bestAlt.result.overall} label={`${bestAlt.title} scores ${Math.round(bestAlt.result.overall)} out of 100`} />
+                          <div className="ring-cap">Highest alternative</div>
+                        </div>
+                      </div>
+                      <div>
+                        <h2>At a glance</h2>
+                        {bestBeatsCurrent ? (
+                          <p>
+                            For your priorities, <strong>{bestAlt.title}</strong> scores{' '}
+                            <strong>{Math.round(bestAlt.result.overall) - Math.round(baseline)} points higher</strong> than your current rotation:
+                          </p>
+                        ) : (
+                          <p>Your current rotation scores as high as any alternative found for your priorities. The best alternative is:</p>
+                        )}
+                        <p className="path">{bestAlt.result.crops.map((c) => c.name).join(' → ')}</p>
+                        <p className="fine">
+                          Scores rank options for your inputs and 20 years of NASA POWER weather. They are not yield forecasts.
+                        </p>
+                      </div>
+                    </section>
                   )}
-                  <li>
-                    Based on {climate.years} complete years of daily NASA POWER data
-                    ({START_YEAR}–{END_YEAR}){data.fromCache ? ', loaded from this device’s saved copy' : ''}.
-                  </li>
-                </ul>
-              </section>
+                  {(inputs.scenario.dTemp !== 0 || inputs.scenario.rainPct !== 0) && (
+                    <p className="banner" role="status">
+                      What-if mode: scores below assume {inputs.scenario.dTemp > 0 ? '+' : ''}
+                      {inputs.scenario.dTemp} °C and {inputs.scenario.rainPct > 0 ? '+' : ''}
+                      {inputs.scenario.rainPct}% rainfall compared with the past 20 years.
+                    </p>
+                  )}
+                  <RankList strategies={strategies} baseline={baseline} bestId={bestBeatsCurrent ? (bestAlt?.id ?? null) : null} onOpen={openStrategy} />
+                  <PageNav tab="summary" onChange={goTo} />
+                </>
+              )}
+            </div>
 
-              <section className="card" id="satellite">
-                <details className="sat-details" open={satOpen} onToggle={(e) => setSatOpen(e.currentTarget.open)}>
-                <summary><h2>What the satellite sees</h2></summary>
-                {ndviFile && ndviMonths ? (
-                  <>
-                    <VegetationChart months={ndviMonths} />
+            <div {...panel('climate')}>
+              {data.status === 'ready' && climate && table && (
+                <>
+                  <section className="card" id="climate">
+                    <h2>Climate at this location</h2>
+                    <ClimateChart months={climate.months} />
                     <p className="legend">
-                      <span className="key bar-key green" /> Average greenness (NDVI) per month &nbsp;
-                      <span className="key bar-key sparse" /> Sparse or bare (below 0.3, dashed line) &nbsp; thin line = range across years
+                      <span className="key bar-key" /> Rainfall per month (mm) &nbsp;
+                      <span className="key line-key" /> Average temperature (°C)
                     </p>
                     <ul className="plain-list">
                       <li>
-                        {(() => {
-                          const sparse = ndviMonths.filter((m) => Number.isFinite(m.mean) && m.mean < 0.3)
-                          return sparse.length
-                            ? `Typically sparse or bare in: ${sparse.map((m) => monthLabel(m.month)).join(', ')}. These are the months when soil is most exposed.`
-                            : 'No month is typically sparse or bare at this point (average NDVI stays at 0.3 or above).'
-                        })()}
+                        Temperature trend:{' '}
+                        <strong>{(climate.temp.slope * 10).toFixed(2)} °C per decade</strong>{' '}
+                        {climate.temp.significant ? '(unlikely to be chance)' : '(within normal year-to-year variation)'}.
                       </li>
-                      {table.mode === 'years' && seasonSat && (
+                      <li>
+                        Rainfall trend:{' '}
+                        <strong>{Math.round(climate.rain.slope * 10)} mm per decade</strong>{' '}
+                        {climate.rain.significant ? '(unlikely to be chance)' : '(within normal variation)'}.
+                        Satellite-era rainfall products can change over time, so treat this trend with care.
+                      </li>
+                      {tempOffset !== 0 && (
                         <li>
-                          Your main growing season ({slotLabel(table.startMonth, 0, table.mode)}):{' '}
-                          {satelliteLine(seasonSat)} This is one window shared by all three rotation years.
+                          Temperatures adjusted by <strong>{tempOffset > 0 ? '+' : ''}{tempOffset.toFixed(1)} °C</strong>:
+                          your field is at {inputs.elevationM} m but NASA’s grid cell is at about {Math.round(gridElev ?? 0)} m
+                          (air cools roughly 6.5 °C per 1,000 m). Rainfall is not adjusted.
                         </li>
                       )}
                       <li>
-                        Data: {ndviFile.source}, {ndviFile.years[0]}–{ndviFile.years[1]}, one MODIS pixel (250 m
-                        product, {ndviFile.pixelMetres ?? 250} m cell) at {ndviFile.latitude}, {ndviFile.longitude}
-                        {ndviFile.landCover
-                          ? `; MODIS land cover there is “${ndviFile.landCover.label}” (${ndviFile.landCover.year}).`
-                          : '.'}{' '}
-                        Downloaded {ndviFile.fetched}; bundled because the live service is too slow to call in the app.
-                      </li>
-                      <li>
-                        It describes what is growing at that point, not your field, and is not used to score rotations.
+                        Based on {climate.years} complete years of daily NASA POWER data
+                        ({START_YEAR}–{END_YEAR}){data.fromCache ? ', loaded from this device’s saved copy' : ''}.
                       </li>
                     </ul>
-                  </>
-                ) : (
-                  <p className="muted">
-                    No satellite vegetation layer for this location. It is bundled only for demo locations whose
-                    MODIS pixel is verified farmland, because the live MODIS service takes 20–60 seconds per request.
-                  </p>
-                )}
-                <LandsatPanel presetId={inputs.presetId} />
-                <ModisPanel presetId={inputs.presetId} startMonth={table.startMonth} mode={table.mode} />
-                <SmapPanel presetId={inputs.presetId} />
-                </details>
-              </section>
-
-              {(inputs.scenario.dTemp !== 0 || inputs.scenario.rainPct !== 0) && (
-                <p className="banner" role="status">
-                  What-if mode: scores below assume {inputs.scenario.dTemp > 0 ? '+' : ''}
-                  {inputs.scenario.dTemp} °C and {inputs.scenario.rainPct > 0 ? '+' : ''}
-                  {inputs.scenario.rainPct}% rainfall compared with the past 20 years.
-                </p>
+                  </section>
+                  <PageNav tab="climate" onChange={goTo} />
+                </>
               )}
+            </div>
 
-              <h2 className="section-title" id="rotations">Rotation strategies compared</h2>
-              {strategies.length < 4 && (
-                <p className="banner" role="status">
-                  Select more crops you can grow (at least two that are not cover crops or fallow) to see all alternatives.
-                </p>
+            <div {...panel('satellite')}>
+              {data.status === 'ready' && climate && table && (
+                <>
+                  <section className="card" id="satellite">
+                    <details className="sat-details" open={satOpen} onToggle={(e) => setSatOpen(e.currentTarget.open)}>
+                      <summary><h2>What the satellite sees</h2></summary>
+                      {ndviFile && ndviMonths ? (
+                        <>
+                          <VegetationChart months={ndviMonths} />
+                          <p className="legend">
+                            <span className="key bar-key green" /> Average greenness (NDVI) per month &nbsp;
+                            <span className="key bar-key sparse" /> Sparse or bare (below 0.3, dashed line) &nbsp; thin line = range across years
+                          </p>
+                          <ul className="plain-list">
+                            <li>
+                              {(() => {
+                                const sparse = ndviMonths.filter((m) => Number.isFinite(m.mean) && m.mean < 0.3)
+                                return sparse.length
+                                  ? `Typically sparse or bare in: ${sparse.map((m) => monthLabel(m.month)).join(', ')}. These are the months when soil is most exposed.`
+                                  : 'No month is typically sparse or bare at this point (average NDVI stays at 0.3 or above).'
+                              })()}
+                            </li>
+                            {table.mode === 'years' && seasonSat && (
+                              <li>
+                                Your main growing season ({slotLabel(table.startMonth, 0, table.mode)}):{' '}
+                                {satelliteLine(seasonSat)} This is one window shared by all three rotation years.
+                              </li>
+                            )}
+                            <li>
+                              Data: {ndviFile.source}, {ndviFile.years[0]}–{ndviFile.years[1]}, one MODIS pixel (250 m
+                              product, {ndviFile.pixelMetres ?? 250} m cell) at {ndviFile.latitude}, {ndviFile.longitude}
+                              {ndviFile.landCover
+                                ? `; MODIS land cover there is “${ndviFile.landCover.label}” (${ndviFile.landCover.year}).`
+                                : '.'}{' '}
+                              Downloaded {ndviFile.fetched}; bundled because the live service is too slow to call in the app.
+                            </li>
+                            <li>
+                              It describes what is growing at that point, not your field, and is not used to score rotations.
+                            </li>
+                          </ul>
+                        </>
+                      ) : (
+                        <p className="muted">
+                          No satellite vegetation layer for this location. It is bundled only for demo locations whose
+                          MODIS pixel is verified farmland, because the live MODIS service takes 20–60 seconds per request.
+                        </p>
+                      )}
+                      <LandsatPanel presetId={inputs.presetId} />
+                      <ModisPanel presetId={inputs.presetId} startMonth={table.startMonth} mode={table.mode} />
+                      <SmapPanel presetId={inputs.presetId} />
+                    </details>
+                  </section>
+                  <PageNav tab="satellite" onChange={goTo} />
+                </>
               )}
-              <div className="grid">
-                {strategies.map((s) => (
-                  <StrategyCard
-                    key={s.id}
-                    strategy={s}
-                    explanation={explain(s, strategies[0].result, table, slotSat, ndviFile !== null, inputs.soilSource === 'soilgrids', RAIN_CHECK[inputs.presetId] ?? null)}
-                    table={table}
-                    satellite={slotSat}
-                    baseline={baseline}
-                    highlight={bestBeatsCurrent && s.id === bestAlt?.id}
+            </div>
+
+            <div {...panel('rotations')}>
+              {data.status === 'ready' && climate && table && (
+                <>
+                  {(inputs.scenario.dTemp !== 0 || inputs.scenario.rainPct !== 0) && (
+                    <p className="banner" role="status">
+                      What-if mode: scores below assume {inputs.scenario.dTemp > 0 ? '+' : ''}
+                      {inputs.scenario.dTemp} °C and {inputs.scenario.rainPct > 0 ? '+' : ''}
+                      {inputs.scenario.rainPct}% rainfall compared with the past 20 years.
+                    </p>
+                  )}
+                  <h2 className="section-title" id="rotations">Rotation strategies compared</h2>
+                  {strategies.length < 4 && (
+                    <p className="banner" role="status">
+                      Select more crops you can grow (at least two that are not cover crops or fallow) to see all alternatives.
+                    </p>
+                  )}
+                  <div className="grid">
+                    {shownStrategies.map((s) => (
+                      <StrategyCard
+                        key={s.id}
+                        strategy={s}
+                        explanation={explain(s, strategies[0].result, table, slotSat, ndviFile !== null, inputs.soilSource === 'soilgrids', RAIN_CHECK[inputs.presetId] ?? null)}
+                        table={table}
+                        satellite={slotSat}
+                        baseline={baseline}
+                        highlight={bestBeatsCurrent && s.id === bestAlt?.id}
+                      />
+                    ))}
+                  </div>
+                  <Pagination page={shownCardPage} pageSize={pageSize} total={strategies.length} onChange={(p) => { setCardPage(p); window.scrollTo({ top: 0 }) }} />
+                  <PageNav tab="rotations" onChange={goTo} />
+                </>
+              )}
+            </div>
+
+            <div {...panel('data')}>
+              {ready && (
+                <>
+                  <DataRoles />
+                  <ShareBar
+                    inputs={inputs}
+                    beforePrint={() => flushSync(() => setSatOpen(true))}
                   />
-                ))}
-              </div>
-              <DataRoles />
-              <ShareBar
-                inputs={inputs}
-                beforePrint={() => flushSync(() => setSatOpen(true))}
-              />
-            </>
-          )}
+                </>
+              )}
+              <section className="card local-advice" id="advice">
+                <h2>Get local advice</h2>
+                <p>
+                  Use these results to prepare questions, not to decide. Show them to someone who knows your land: in Malaysia, the
+                  Department of Agriculture (Jabatan Pertanian,{' '}
+                  <a href="https://www.doa.gov.my/" target="_blank" rel="noreferrer">doa.gov.my</a>) provides agricultural extension
+                  services, so ask for the extension officer for your district or state. Elsewhere, ask your national or regional
+                  agricultural extension service. The contact details of an office are not listed here because we have not verified them.
+                </p>
+              </section>
+              <PageNav tab="data" onChange={goTo} />
+            </div>
+          </main>
+        </div>
 
-          <section className="card local-advice" id="advice">
-            <h2>Get local advice</h2>
-            <p>
-              Use these results to prepare questions, not to decide. Show them to someone who knows your land: in Malaysia, the
-              Department of Agriculture (Jabatan Pertanian,{' '}
-              <a href="https://www.doa.gov.my/" target="_blank" rel="noreferrer">doa.gov.my</a>) provides agricultural extension
-              services, so ask for the extension officer for your district or state. Elsewhere, ask your national or regional
-              agricultural extension service. The contact details of an office are not listed here because we have not verified them.
-            </p>
-          </section>
-        </main>
+        <footer className="app-footer">
+          <p className="muted privacy">
+            <strong>Crop Rotation Explorer</strong>, a NASA Space Apps Challenge 2026 entry (Kuala Lumpur) for the challenge “Field Shift:
+            Adapting Farms with NASA Data”. Privacy: there are no accounts, ads or tracking code in this app. The location you choose is sent
+            from your browser to NASA POWER for the climate data, and to ISRIC SoilGrids only if you press the soil button; map pictures
+            come from NASA GIBS. Downloaded climate data is saved on your own device so it loads faster next time. The site is hosted on
+            Cloudflare, which, like any web host, can see that a page was requested.
+          </p>
+          <details>
+            <summary>How this works, data sources and limits</summary>
+            <ul className="plain-list">
+              <li>
+                Climate data: <a href="https://power.larc.nasa.gov/" target="_blank" rel="noreferrer">NASA POWER</a>{' '}
+                (Prediction Of Worldwide Energy Resources, NASA Langley Research Center): daily air temperature,
+                rainfall, root-zone soil wetness and evapotranspiration, {START_YEAR}–{END_YEAR}.
+              </li>
+              <li>
+                Other data: MODIS vegetation, evapotranspiration, temperature and growing-season dates (NASA, served by the
+                ORNL DAAC), SMAP soil moisture (NASA NSIDC DAAC; Kedah, 2024 only), Landsat and NASADEM elevation (NASA/USGS, served by Microsoft Planetary Computer) and NASA GIBS
+                imagery. These satellite layers are bundled for the demo sites only. Soil can come from ISRIC SoilGrids
+                (not NASA, beta). Crop requirements come from FAO tables.
+              </li>
+              <li>
+                Each crop is scored for each season on temperature, cold and heat stress, and water supply versus need,
+                for every past year; need is estimated from local temperature (FAO-56). Rotations are then scored on soil
+                health, water demand, reliability and income.
+              </li>
+              <li>
+                Crop characteristics are approximate reference values and must be checked locally.
+                Not included: satellite data outside the demo sites or in the scores (it is shown as evidence only),
+                SMAP soil moisture other than one year (2024) for Kedah, measured soil data for your field, and prices.
+              </li>
+              <li>
+                Built with help from AI tools (Claude by Anthropic) for code and wording; the team reviewed the results.
+              </li>
+            </ul>
+          </details>
+          <Credits />
+        </footer>
+        <BackToTop />
       </div>
-
-      <footer className="app-footer">
-        <p className="muted privacy">
-          <strong>Crop Rotation Explorer</strong>, a NASA Space Apps Challenge 2026 entry (Kuala Lumpur) for the challenge “Field Shift:
-          Adapting Farms with NASA Data”. Privacy: there are no accounts, ads or tracking code in this app. The location you choose is sent
-          from your browser to NASA POWER for the climate data, and to ISRIC SoilGrids only if you press the soil button; map pictures
-          come from NASA GIBS. Downloaded climate data is saved on your own device so it loads faster next time. The site is hosted on
-          Cloudflare, which, like any web host, can see that a page was requested.
-        </p>
-        <details>
-          <summary>How this works, data sources and limits</summary>
-          <ul className="plain-list">
-            <li>
-              Climate data: <a href="https://power.larc.nasa.gov/" target="_blank" rel="noreferrer">NASA POWER</a>{' '}
-              (Prediction Of Worldwide Energy Resources, NASA Langley Research Center): daily air temperature,
-              rainfall, root-zone soil wetness and evapotranspiration, {START_YEAR}–{END_YEAR}.
-            </li>
-            <li>
-              Other data: MODIS vegetation, evapotranspiration, temperature and growing-season dates (NASA, served by the
-              ORNL DAAC), SMAP soil moisture (NASA NSIDC DAAC; Kedah, 2024 only), Landsat and NASADEM elevation (NASA/USGS, served by Microsoft Planetary Computer) and NASA GIBS
-              imagery. These satellite layers are bundled for the demo sites only. Soil can come from ISRIC SoilGrids
-              (not NASA, beta). Crop requirements come from FAO tables.
-            </li>
-            <li>
-              Each crop is scored for each season on temperature, cold and heat stress, and water supply versus need,
-              for every past year; need is estimated from local temperature (FAO-56). Rotations are then scored on soil
-              health, water demand, reliability and income.
-            </li>
-            <li>
-              Crop characteristics are approximate reference values and must be checked locally.
-              Not included: satellite data outside the demo sites or in the scores (it is shown as evidence only),
-              SMAP soil moisture other than one year (2024) for Kedah, measured soil data for your field, and prices.
-            </li>
-            <li>
-              Built with help from AI tools (Claude by Anthropic) for code and wording; the team reviewed the results.
-            </li>
-          </ul>
-        </details>
-        <Credits />
-      </footer>
-      <BackToTop />
-    </div>
+    </>
   )
 }
 
