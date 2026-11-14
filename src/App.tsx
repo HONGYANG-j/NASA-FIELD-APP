@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { flushSync } from 'react-dom'
 import './App.css'
+import './components/Extras.css'
+import { BackToTop } from './components/BackToTop'
+import { Guide } from './components/Guide'
+import { ShareBar } from './components/ShareBar'
+import { decodeShare } from './lib/share'
 import { ClimateChart } from './components/ClimateChart'
 import { Controls } from './components/Controls'
 import { StrategyCard } from './components/StrategyCard'
@@ -60,9 +66,32 @@ function fromPreset(p: Preset, prev?: Inputs): Inputs {
   }
 }
 
+/** Starting setup: a valid share link in the address (see lib/share.ts) or the first demo preset. */
+function initialSetup(): Inputs {
+  const shared = decodeShare(window.location.search)
+  if (!shared) return fromPreset(PRESETS[0])
+  const preset = PRESETS.find((p) => p.id === shared.presetId)
+  const base = fromPreset(preset ?? PRESETS[0])
+  const merged: Inputs = {
+    ...base,
+    ...shared,
+    presetId: shared.presetId ?? base.presetId,
+    elevationM: shared.elevationM ?? base.elevationM,
+    current: shared.current ?? base.current,
+  }
+  // The crops of the current rotation must be among the crops offered.
+  merged.allowed = Array.from(new Set([...base.allowed, ...merged.current]))
+  return merged
+}
+
 function App() {
-  const [inputs, setInputs] = useState<Inputs>(() => fromPreset(PRESETS[0]))
-  const [site, setSite] = useState({ lat: PRESETS[0].lat, lon: PRESETS[0].lon })
+  const [inputs, setInputs] = useState<Inputs>(initialSetup)
+  const [site, setSite] = useState(() => {
+    const i = initialSetup()
+    return { lat: i.lat, lon: i.lon }
+  })
+  // The satellite section starts closed on a phone, where the page is long.
+  const [satOpen, setSatOpen] = useState(() => !window.matchMedia('(max-width: 860px)').matches)
   const [result, setResult] = useState<Result | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
@@ -225,10 +254,19 @@ function App() {
           data for your location. It highlights patterns and options; it does not replace
           your own judgment or local agricultural advice.
         </p>
+        <Guide />
       </header>
 
+      <nav className="jump-nav no-print" aria-label="Jump to a section">
+        <a href="#farm">Your farm</a>
+        <a href="#climate">Climate</a>
+        <a href="#satellite">Satellite</a>
+        <a href="#rotations">Rotations</a>
+        <a href="#advice">Advice</a>
+      </nav>
+
       <div className="layout">
-        <aside>
+        <aside id="farm">
           <Controls
             inputs={inputs}
             onPickPoint={onPickPoint}
@@ -252,7 +290,13 @@ function App() {
 
           {data.status === 'ready' && climate && table && (
             <>
-              <section className="card">
+              <p className="print-only">
+                Setup: {inputs.presetId === CUSTOM_PRESET_ID ? `custom point ${inputs.lat}, ${inputs.lon}` : (PRESETS.find((p) => p.id === inputs.presetId)?.name ?? '')}
+                {' '}({site.lat}, {site.lon}); {inputs.mode === 'seasons' ? '3 seasons per year' : '1 main crop per year, 3-year cycle'};
+                {inputs.irrigated ? ' irrigation available' : ' rainfed'}; current rotation: {inputs.current.map((c) => CROP_BY_ID[c]?.name ?? c).join(', ')}.
+                Printed from {window.location.origin}.
+              </p>
+              <section className="card" id="climate">
                 <h2>Climate at this location</h2>
                 <ClimateChart months={climate.months} />
                 <p className="legend">
@@ -285,8 +329,9 @@ function App() {
                 </ul>
               </section>
 
-              <section className="card">
-                <h2>What the satellite sees</h2>
+              <section className="card" id="satellite">
+                <details className="sat-details" open={satOpen} onToggle={(e) => setSatOpen(e.currentTarget.open)}>
+                <summary><h2>What the satellite sees</h2></summary>
                 {ndviFile && ndviMonths ? (
                   <>
                     <VegetationChart months={ndviMonths} />
@@ -331,6 +376,7 @@ function App() {
                 <LandsatPanel presetId={inputs.presetId} />
                 <ModisPanel presetId={inputs.presetId} startMonth={table.startMonth} mode={table.mode} />
                 <SmapPanel presetId={inputs.presetId} />
+                </details>
               </section>
 
               {(inputs.scenario.dTemp !== 0 || inputs.scenario.rainPct !== 0) && (
@@ -341,7 +387,7 @@ function App() {
                 </p>
               )}
 
-              <h2 className="section-title">Rotation strategies compared</h2>
+              <h2 className="section-title" id="rotations">Rotation strategies compared</h2>
               {strategies.length < 4 && (
                 <p className="banner" role="status">
                   Select more crops you can grow (at least two that are not cover crops or fallow) to see all alternatives.
@@ -359,12 +405,34 @@ function App() {
                   />
                 ))}
               </div>
+              <ShareBar
+                inputs={inputs}
+                beforePrint={() => flushSync(() => setSatOpen(true))}
+              />
             </>
           )}
+
+          <section className="card local-advice" id="advice">
+            <h2>Get local advice</h2>
+            <p>
+              Use these results to prepare questions, not to decide. Show them to someone who knows your land: in Malaysia, the
+              Department of Agriculture (Jabatan Pertanian,{' '}
+              <a href="https://www.doa.gov.my/" target="_blank" rel="noreferrer">doa.gov.my</a>) provides agricultural extension
+              services, so ask for the extension officer for your district or state. Elsewhere, ask your national or regional
+              agricultural extension service. The contact details of an office are not listed here because we have not verified them.
+            </p>
+          </section>
         </main>
       </div>
 
       <footer className="app-footer">
+        <p className="muted privacy">
+          <strong>Crop Rotation Explorer</strong>, a NASA Space Apps Challenge 2026 entry (Kuala Lumpur) for the challenge “Field Shift:
+          Adapting Farms with NASA Data”. Privacy: there are no accounts, ads or tracking code in this app. The location you choose is sent
+          from your browser to NASA POWER for the climate data, and to ISRIC SoilGrids only if you press the soil button; map pictures
+          come from NASA GIBS. Downloaded climate data is saved on your own device so it loads faster next time. The site is hosted on
+          Cloudflare, which, like any web host, can see that a page was requested.
+        </p>
         <details>
           <summary>How this works, data sources and limits</summary>
           <ul className="plain-list">
@@ -395,6 +463,7 @@ function App() {
           </ul>
         </details>
       </footer>
+      <BackToTop />
     </div>
   )
 }
