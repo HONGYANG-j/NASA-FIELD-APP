@@ -15,7 +15,7 @@ export function Hero() {
   return (
     <header className="hero">
       <p className="eyebrow">NASA Space Apps Challenge 2026 · Field Shift</p>
-      <h1>Crop Rotation Explorer</h1>
+      <h1>Plant vs Climate</h1>
       <p className="hero-lede">
         Compare crop rotations for your farm using 20 years of NASA climate data, with satellite evidence behind every score.
       </p>

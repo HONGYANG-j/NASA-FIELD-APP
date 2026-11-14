@@ -109,7 +109,7 @@ function readTab(): PageId {
   const id = window.location.hash.replace(/^#\/?/, '')
   if ((PAGE_IDS as string[]).includes(id)) return id as PageId
   if (id === 'assistant' || id === 'setup') return 'start'
-  return window.location.search.includes('p=') ? 'summary' : 'start'
+  return decodeShare(window.location.search) ? 'summary' : 'start'
 }
 
 /** Name of the chosen place, or null for a point that has not been chosen yet. */
@@ -185,11 +185,11 @@ function App() {
     setSite({ lat: p.lat, lon: p.lon })
   }
 
-  const onLoadCustom = () => {
+  const onLoadCustom = (): boolean => {
     const { lat, lon } = inputs
     if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
       setFormError('Enter a latitude between -90 and 90 and a longitude between -180 and 180.')
-      return
+      return false
     }
     setFormError(null)
     if (lat === site.lat && lon === site.lon) setReloadKey((k) => k + 1)
@@ -197,6 +197,7 @@ function App() {
       setSite({ lat, lon })
       patch({ soil: UNKNOWN_SOIL, soilSource: 'manual' }) // soil belongs to the previous location
     }
+    return true
   }
 
   // A click on the map: same flow as typing coordinates and pressing "Load data".
@@ -307,10 +308,20 @@ function App() {
     return () => window.removeEventListener('hashchange', on)
   }, [picked])
   const tab: PageId = picked === null ? 'start' : tabRaw
-  const goTo = (id: PageId) => {
-    if (id !== 'start' && picked === null) return
-    if (window.location.hash !== `#/${id}`) window.location.hash = `/${id}`
+  /** `placeJustChosen`: the same click has just chosen a place, so the results are allowed even though `picked` has not updated yet. */
+  const goTo = (id: PageId, placeJustChosen = false) => {
+    if (id !== 'start' && picked === null && !placeJustChosen) return
+    if (window.location.hash !== `#/${id}`) window.history.pushState(null, '', `#/${id}`)
+    setTabRaw(id)
     window.scrollTo({ top: 0 })
+  }
+  // "See my results": coordinates typed but not yet loaded are loaded first, so the results always match what is on screen.
+  const showResults = () => {
+    if (inputs.presetId === CUSTOM_PRESET_ID && (inputs.lat !== site.lat || inputs.lon !== site.lon)) {
+      if (!onLoadCustom()) return
+      setPicked(`Custom point ${inputs.lat}, ${inputs.lon}`)
+    }
+    goTo('summary')
   }
   // Sensitivity check: run in the background (about 0.6 s) once the Summary page is open, and show it only for the inputs it was run for.
   const sensKey = JSON.stringify([site, start, inputs.scenario, inputs.weights, inputs.allowed, inputs.current, inputs.mode, inputs.irrigated, inputs.soil, inputs.elevationM])
@@ -366,7 +377,7 @@ function App() {
       <div className="app">
         <PageTabs tab={tab} onChange={goTo} locked={picked === null} />
 
-        {tab === 'start' ? (
+        <div hidden={tab !== 'start'}>
           <StartScreen
             inputs={inputs}
             loading={data.status === 'loading'}
@@ -380,6 +391,7 @@ function App() {
               setPicked(label)
             }}
             onLoadCustom={onLoadCustom}
+            formError={formError}
             onChange={patch}
             fill={fillShown}
             onFill={(m) => { setFill(m); setFillTouched(true) }}
@@ -389,7 +401,7 @@ function App() {
                 place={inputs.presetId === CUSTOM_PRESET_ID ? 'a custom point chosen by the user' : placeName}
                 status={assistStatus}
                 onApply={(p) => setInputs((prev) => applyPatch(prev, p))}
-                onSeeResults={() => goTo('summary')}
+                onSeeResults={showResults}
                 onSetup={() => { setFill('manual'); setFillTouched(true) }}
               />
             }
@@ -406,14 +418,15 @@ function App() {
                 hideLocation
               />
             }
-            onShowResults={() => goTo('summary')}
+            onShowResults={showResults}
             onSkip={() => {
               onPreset('kedah')
               setPicked(PRESETS[0].name)
-              goTo('summary')
+              goTo('summary', true)
             }}
           />
-        ) : (
+        </div>
+        {tab !== 'start' && (
         <div className="results">
 
           <main className="app-main">
@@ -649,7 +662,7 @@ function App() {
 
         <footer className="app-footer">
           <p className="muted privacy">
-            <strong>Crop Rotation Explorer</strong>, a NASA Space Apps Challenge 2026 entry (Kuala Lumpur) for the challenge “Field Shift:
+            <strong>Plant vs Climate</strong> by team ApaSpace, a NASA Space Apps Challenge 2026 entry (Kuala Lumpur) for the challenge “Field Shift:
             Adapting Farms with NASA Data”. Privacy: there are no accounts, ads or tracking code in this app. For the three demo sites the climate data is a copy bundled with the app, so nothing about
             your visit is sent to NASA; for any other point the location you choose is sent from your browser to NASA POWER, to Open-Meteo’s place search only if you type a place name and press Search, and to ISRIC SoilGrids only if you press the soil button (“Use my location” is read by your browser only, and just a point rounded to about 1 km is used); map pictures
             come from NASA GIBS. If you use the optional AI assistant, the messages you type and a short summary of the setup form (never

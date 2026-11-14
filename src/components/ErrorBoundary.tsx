@@ -15,7 +15,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Only the error type and a short stack go to the browser console; nothing is sent anywhere.
-    console.error('Crop Rotation Explorer crashed while rendering:', error.name, info.componentStack?.split('\n').slice(0, 4).join('\n'))
+    console.error('Plant vs Climate crashed while rendering:', error.name, info.componentStack?.split('\n').slice(0, 4).join('\n'))
   }
 
   render() {

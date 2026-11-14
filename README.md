@@ -1,4 +1,6 @@
-# Crop Rotation Explorer (NASA Space Apps 2026, Kuala Lumpur, virtual)
+# Plant vs Climate (NASA Space Apps 2026, Kuala Lumpur, virtual)
+
+Team: **ApaSpace**. The project was called "Crop Rotation Explorer" while it was being built, and the web address still uses that name.
 
 Challenge: **Field Shift: Adapting Farms with NASA Data**.
 A decision-support web app: pick a farm location, say what you grow and what matters to you,

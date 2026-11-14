@@ -15,7 +15,7 @@ const check = (name, ok, detail = '') => {
 const home = await fetch(base + '/')
 const html = await home.text()
 check('home page loads', home.status === 200 && /text\/html/.test(home.headers.get('content-type') ?? ''), `HTTP ${home.status}`)
-check('page title', /<title>Crop Rotation Explorer/.test(html))
+check('page title', /<title>Plant vs Climate/.test(html))
 check('licence and AI-assistance metadata present', /name="license" content="Apache-2.0"/.test(html) && /name="ai-assistance"/.test(html))
 
 const csp = home.headers.get('content-security-policy') ?? ''

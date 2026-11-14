@@ -40,7 +40,10 @@ export function PlaceSearch({ onChoose }: Props) {
     }
     if (busy) return
     // At most one search a second: this is a typed, button-pressed search, never search-as-you-type.
-    if (Date.now() - lastSearch.current < 1000) return
+    if (Date.now() - lastSearch.current < 1000) {
+      setNote('One search a second, please. Press Search again.')
+      return
+    }
     lastSearch.current = Date.now()
     abort.current?.abort()
     const ctrl = new AbortController()

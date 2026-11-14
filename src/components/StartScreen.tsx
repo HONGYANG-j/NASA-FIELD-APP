@@ -21,7 +21,10 @@ interface Props {
   onPickPoint: (lat: number, lon: number) => void
   /** A place found by name, pasted coordinates, or the device location. */
   onSearchPick: (lat: number, lon: number, label: string) => void
-  onLoadCustom: () => void
+  /** Loads the typed coordinates. Returns false (and loads nothing) when they are not valid. */
+  onLoadCustom: () => boolean
+  /** Why the typed coordinates were refused, or null. */
+  formError: string | null
   onChange: (patch: Partial<Inputs>) => void
   fill: FillMode
   onFill: (m: FillMode) => void
@@ -39,7 +42,7 @@ const SUBTITLE: Record<string, string> = {
 }
 
 /** The first page: choose the place (required), then describe the farm by chatting with the AI or by filling in the form. */
-export function StartScreen({ inputs, loading, failed, picked, onPicked, onPreset, onPickPoint, onSearchPick, onLoadCustom, onChange, fill, onFill, ai, manual, onShowResults, onSkip }: Props) {
+export function StartScreen({ inputs, loading, failed, picked, onPicked, onPreset, onPickPoint, onSearchPick, onLoadCustom, formError, onChange, fill, onFill, ai, manual, onShowResults, onSkip }: Props) {
   const [custom, setCustom] = useState(() => (picked?.startsWith('Custom') ?? false))
   const [mapOpen, setMapOpen] = useState(false)
 
@@ -92,7 +95,7 @@ export function StartScreen({ inputs, loading, failed, picked, onPicked, onPrese
                 Longitude
                 <input type="number" step="0.01" min={-180} max={180} value={inputs.lon} onChange={(e) => onChange({ lon: Number(e.target.value) })} />
               </label>
-              <button type="button" onClick={() => { onLoadCustom(); onPicked(`Custom point ${inputs.lat}, ${inputs.lon}`) }}>Use these coordinates</button>
+              <button type="button" onClick={() => { if (onLoadCustom()) onPicked(`Custom point ${inputs.lat}, ${inputs.lon}`) }}>Use these coordinates</button>
               <button type="button" className="ghost" aria-expanded={mapOpen} onClick={() => setMapOpen((o) => !o)}>{mapOpen ? 'Hide map' : 'Pick on the satellite map'}</button>
             </div>
             {mapOpen && (
@@ -103,7 +106,8 @@ export function StartScreen({ inputs, loading, failed, picked, onPicked, onPrese
           </>
         )}
 
-        {picked && (
+        {formError && <p className="banner" role="alert">{formError}</p>}
+        {picked && !formError && (
           <p className="start-status" role="status">
             {failed ? 'Could not load NASA data for this place yet. You can still continue and press “Try again” on the results page.' : loading ? `Selected: ${picked}. Loading 20 years of NASA climate data in the background…` : `Selected: ${picked}. NASA climate data is ready.`}
           </p>
@@ -124,7 +128,8 @@ export function StartScreen({ inputs, loading, failed, picked, onPicked, onPrese
                 Fill in myself
               </button>
             </div>
-            <div role="tabpanel">{fill === 'ai' ? ai : <div className="manual-grid">{manual}</div>}</div>
+            <div role="tabpanel" hidden={fill !== 'ai'}>{ai}</div>
+            <div role="tabpanel" hidden={fill !== 'manual'} className="manual-grid">{manual}</div>
             <div className="start-cta">
               <button type="button" className="cta" onClick={onShowResults}>See my results →</button>
               <span className="muted">You can change anything later with “Your farm” in the menu.</span>

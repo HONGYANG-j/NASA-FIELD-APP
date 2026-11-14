@@ -22,14 +22,14 @@ export function TopBar({ place, onShare }: { place: string; onShare: () => void 
   return (
     <div className="topbar-wrap no-print">
       <div className="topbar">
-        <a className="brand" href="#/start" aria-label="Crop Rotation Explorer, start page">
+        <a className="brand" href="#/start" aria-label="Plant vs Climate, start page">
           <svg viewBox="0 0 64 64" aria-hidden="true">
             <rect width="64" height="64" rx="16" fill="currentColor" />
             <path d="M32 52V30" stroke="#fff" strokeWidth="4" strokeLinecap="round" />
             <path d="M32 33c-9 0-14-5-14-13 9 0 14 5 14 13Z" fill="#9be3c4" />
             <path d="M32 29c0-8 5-13 14-13 0 8-5 13-14 13Z" fill="#fff" />
           </svg>
-          <span>Crop Rotation Explorer</span>
+          <span>Plant vs Climate</span>
         </a>
         <a className="topbar-place" href="#/start" title="Location being analysed. Click to change it.">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z" /><circle cx="12" cy="10" r="2.5" /></svg>
