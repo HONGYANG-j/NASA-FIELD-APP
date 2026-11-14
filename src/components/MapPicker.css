@@ -1,0 +1,20 @@
+.map-picker { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.map-box {
+  width: 100%;
+  height: clamp(240px, 42svh, 360px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--track);
+  cursor: crosshair;
+}
+.map-box.leaflet-container { font: inherit; font-size: 0.75rem; }
+.map-box:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.map-box .leaflet-control-attribution { max-width: 85%; line-height: 1.3; }
+.map-box .leaflet-control-attribution a { color: #0b3d91; }
+.map-status { margin: 0; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.map-warn { margin: 0; padding: 6px 10px; border-radius: 8px; background: var(--warn-bg); border: 1px solid var(--warn); font-size: 0.82rem; }
+.map-layers { gap: 6px; padding: 8px 10px 10px; }
+.map-layers legend { font-size: 0.85rem; }
+.map-credit { font-size: 0.78rem; margin: 0; }
+.map-toggle { width: 100%; }
