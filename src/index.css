@@ -1,44 +1,58 @@
 :root {
-  --bg: #f6f7fb;
-  --card: #ffffff;
-  --text: #1a1a2e;
-  --muted: #565670;
-  --line: #d6d8e6;
-  --track: #e6e8f2;
-  --accent: #0b3d91; /* NASA blue */
+  --bg: #f3efe6;
+  --card: #fffdf9;
+  --field: #f7f3ea;
+  --text: #17231e;
+  --muted: #52615a;
+  --line: #ddd5c4;
+  --track: #e8e1d0;
+  --accent: #0e6b52;
+  --accent-soft: #dcf0e7;
+  --accent-2: #b5651d;
   --on-accent: #ffffff;
   --focus: #1a73e8;
   --good: #1b7a3a;
-  --warn: #b26a00;
-  --warn-bg: #fff4e0;
+  --warn: #8f5200;
+  --warn-bg: #fff1d6;
   --bad: #b3261e;
-  --bar: #9db8e6;
+  --bar: #7fb0d6;
   --line-series: #c2410c;
+  --shadow: 0 1px 2px rgb(23 35 30 / 0.06), 0 6px 18px rgb(23 35 30 / 0.06);
+  --hero-from: #0a3a2d;
+  --hero-to: #1b8a68;
+  --radius: 18px;
 
   color-scheme: light dark;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.5;
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', sans-serif;
+  line-height: 1.55;
   color: var(--text);
   background: var(--bg);
+  -webkit-font-smoothing: antialiased;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0d1021;
-    --card: #161a30;
-    --text: #e8e8f2;
-    --muted: #a6a8c0;
-    --line: #2d3252;
-    --track: #262b49;
-    --accent: #6ea8ff;
-    --on-accent: #0d1021;
+    --bg: #0b1310;
+    --card: #131d19;
+    --field: #0e1713;
+    --text: #e7f0ea;
+    --muted: #9fb2a8;
+    --line: #25362f;
+    --track: #1f2e28;
+    --accent: #5fd6a6;
+    --accent-soft: #14352a;
+    --accent-2: #f0b14a;
+    --on-accent: #07201a;
     --focus: #8ab4ff;
     --good: #5bd48a;
     --warn: #f0b14a;
     --warn-bg: #2a2111;
     --bad: #ff8a80;
-    --bar: #3c5a96;
+    --bar: #4a7ea6;
     --line-series: #ff9966;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.25);
+    --hero-from: #06241b;
+    --hero-to: #0d5a44;
   }
 }
 
@@ -53,8 +67,15 @@ body {
   background: var(--bg);
 }
 
+h1, h2, h3, h4 {
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
 h1 {
   margin: 0;
-  font-size: 1.7rem;
-  color: var(--accent);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
 }
+
+a { color: var(--accent); text-underline-offset: 2px; }
+::selection { background: var(--accent-soft); color: var(--text); }

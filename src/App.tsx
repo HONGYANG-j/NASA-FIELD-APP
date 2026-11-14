@@ -3,7 +3,10 @@ import { flushSync } from 'react-dom'
 import './App.css'
 import './components/Extras.css'
 import { BackToTop } from './components/BackToTop'
-import { Guide } from './components/Guide'
+import { Credits } from './components/Credits'
+import { DataRoles } from './components/DataRoles'
+import { Guide, Hero } from './components/Guide'
+import { ScoreRing } from './components/ScoreRing'
 import { ShareBar } from './components/ShareBar'
 import { decodeShare } from './lib/share'
 import { ClimateChart } from './components/ClimateChart'
@@ -244,24 +247,21 @@ function App() {
   }, [series])
 
   const baseline = strategies[0]?.result.overall ?? 0
+  // The highest-scoring alternative to the current rotation (the first strategy is always the current one).
+  const bestAlt = strategies.slice(1).reduce<(typeof strategies)[number] | null>((a, b) => (!a || b.result.overall > a.result.overall ? b : a), null)
+  const bestBeatsCurrent = bestAlt !== null && bestAlt.result.overall > baseline + 0.5
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>Crop Rotation Explorer</h1>
-        <p className="lede">
-          Compare crop rotations for your farm using 20 years of NASA satellite and model
-          data for your location. It highlights patterns and options; it does not replace
-          your own judgment or local agricultural advice.
-        </p>
-        <Guide />
-      </header>
+      <Hero />
+      <Guide />
 
       <nav className="jump-nav no-print" aria-label="Jump to a section">
         <a href="#farm">Your farm</a>
         <a href="#climate">Climate</a>
         <a href="#satellite">Satellite</a>
         <a href="#rotations">Rotations</a>
+        <a href="#data">NASA data</a>
         <a href="#advice">Advice</a>
       </nav>
 
@@ -296,6 +296,37 @@ function App() {
                 {inputs.irrigated ? ' irrigation available' : ' rainfed'}; current rotation: {inputs.current.map((c) => CROP_BY_ID[c]?.name ?? c).join(', ')}.
                 Printed from {window.location.origin}.
               </p>
+              {bestAlt && (
+                <section className="glance" aria-label="Result at a glance">
+                  <div className="glance-rings">
+                    <div>
+                      <ScoreRing value={baseline} label={`Current rotation scores ${Math.round(baseline)} out of 100`} muted />
+                      <div className="ring-cap">Current</div>
+                    </div>
+                    <span className="glance-vs" aria-hidden="true">→</span>
+                    <div>
+                      <ScoreRing value={bestAlt.result.overall} label={`${bestAlt.title} scores ${Math.round(bestAlt.result.overall)} out of 100`} />
+                      <div className="ring-cap">Highest alternative</div>
+                    </div>
+                  </div>
+                  <div>
+                    <h2>At a glance</h2>
+                    {bestBeatsCurrent ? (
+                      <p>
+                        For your priorities, <strong>{bestAlt.title}</strong> scores{' '}
+                        <strong>{Math.round(bestAlt.result.overall) - Math.round(baseline)} points higher</strong> than your current rotation:
+                      </p>
+                    ) : (
+                      <p>Your current rotation scores as high as any alternative found for your priorities. The best alternative is:</p>
+                    )}
+                    <p className="path">{bestAlt.result.crops.map((c) => c.name).join(' → ')}</p>
+                    <p className="fine">
+                      Scores rank options for your inputs and 20 years of NASA POWER weather. They are not yield forecasts.
+                    </p>
+                  </div>
+                </section>
+              )}
+
               <section className="card" id="climate">
                 <h2>Climate at this location</h2>
                 <ClimateChart months={climate.months} />
@@ -402,9 +433,11 @@ function App() {
                     table={table}
                     satellite={slotSat}
                     baseline={baseline}
+                    highlight={bestBeatsCurrent && s.id === bestAlt?.id}
                   />
                 ))}
               </div>
+              <DataRoles />
               <ShareBar
                 inputs={inputs}
                 beforePrint={() => flushSync(() => setSatOpen(true))}
@@ -462,6 +495,7 @@ function App() {
             </li>
           </ul>
         </details>
+        <Credits />
       </footer>
       <BackToTop />
     </div>

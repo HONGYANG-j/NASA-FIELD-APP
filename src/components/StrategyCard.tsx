@@ -3,6 +3,7 @@ import { slotLabel, slotName } from '../lib/explain'
 import type { SlotTable, Strategy } from '../lib/rotation'
 import type { SlotNdvi } from '../lib/satellite'
 import { greenness } from '../lib/satellite'
+import { ScoreRing } from './ScoreRing'
 
 interface Props {
   strategy: Strategy
@@ -12,6 +13,8 @@ interface Props {
   satellite: (SlotNdvi | null)[] | null
   /** Overall score of the farmer's current rotation, for the delta badge. */
   baseline: number
+  /** True for the highest-scoring alternative when it beats the current rotation. */
+  highlight?: boolean
 }
 
 const DIMS: { key: keyof Strategy['result']['dims']; label: string; hint: string }[] = [
@@ -38,19 +41,20 @@ function List({ items }: { items: string[] }) {
   )
 }
 
-export function StrategyCard({ strategy, explanation, table, satellite, baseline }: Props) {
+export function StrategyCard({ strategy, explanation, table, satellite, baseline, highlight = false }: Props) {
   const r = strategy.result
-  const delta = Math.round(r.overall - baseline)
+  // Difference of the rounded scores shown on the rings, so the numbers on screen always subtract correctly.
+  const delta = Math.round(r.overall) - Math.round(baseline)
   return (
-    <article className={`card strategy ${strategy.id === 'current' ? 'is-current' : ''}`}>
+    <article className={`card strategy ${strategy.id === 'current' ? 'is-current' : ''} ${highlight ? 'is-best' : ''}`}>
       <header className="card-head">
         <div>
+          {highlight && <span className="badge-best">Highest score</span>}
           <h3>{strategy.title}</h3>
           <p className="muted">{strategy.tagline}</p>
         </div>
-        <div className="score" aria-label={`Overall score ${Math.round(r.overall)} out of 100`}>
-          <span className="score-num">{Math.round(r.overall)}</span>
-          <span className="score-unit">/100</span>
+        <div className="score">
+          <ScoreRing value={r.overall} label={`Overall score ${Math.round(r.overall)} out of 100`} muted={strategy.id === 'current'} />
           {strategy.id !== 'current' && (
             <span className={`delta ${delta >= 0 ? 'up' : 'down'}`}>
               {delta >= 0 ? '+' : ''}
