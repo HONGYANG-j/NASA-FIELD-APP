@@ -5,6 +5,7 @@ import { Controls } from './components/Controls'
 import { StrategyCard } from './components/StrategyCard'
 import { CROP_BY_ID } from './data/crops'
 import { CUSTOM_PRESET_ID, PRESETS } from './data/presets'
+import { RAIN_CHECK } from './data/rainfallCheck'
 import type { Preset } from './data/presets'
 import {
   annualStats,
@@ -349,7 +350,7 @@ function App() {
                   <StrategyCard
                     key={s.id}
                     strategy={s}
-                    explanation={explain(s, strategies[0].result, table, slotSat, ndviFile !== null, inputs.soilSource === 'soilgrids')}
+                    explanation={explain(s, strategies[0].result, table, slotSat, ndviFile !== null, inputs.soilSource === 'soilgrids', RAIN_CHECK[inputs.presetId] ?? null)}
                     table={table}
                     satellite={slotSat}
                     baseline={baseline}

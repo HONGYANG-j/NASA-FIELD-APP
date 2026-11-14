@@ -89,6 +89,31 @@ Reports 22, Table 2) that make maize at least as water-sensitive as our subjecti
 side. A proper fix needs root depth and allowable depletion (FAO-56 Table 22) with soil water-holding capacity; not done.
 Treat Iowa as a stress test, not a headline result.
 
+## Rainfall cross-check (NASA POWER vs GPM IMERG)
+
+The app's rainfall comes from NASA POWER (PRECTOTCORR, about 50 km cells). On 14 Nov 2026 we compared it with NASA GPM IMERG
+Final daily precipitation (`GPM_3IMERGDF_07`, 0.1 degree, downloaded from Giovanni as area-averaged time series, 2015-2024,
+3653 days, no missing values) for the same sites. Each IMERG file is an average over a 0.5 degree box around the preset point
+(the file header's "User Bounding Box" line records it). This is a comparison of two satellite/model products, not of either
+against rain gauges.
+
+| Site | POWER / IMERG, mean annual | Ratio | Daily r | Monthly-total r | Annual-total r | Rain days per year (>= 1 mm) |
+|---|---|---|---|---|---|---|
+| Kedah (6.25 N, 100.35 E; box 100.10,6.00,100.60,6.50) | 2417 / 2464 mm | 0.98 | 0.66 | 0.85 | 0.87 | 255 / 236 |
+| Iowa (41.95 N, 93.55 W; box -93.80,41.70,-93.30,42.20) | 821 / 990 mm | 0.83 | 0.74 | 0.96 | 0.99 | 103 / 96 |
+
+- **Kedah:** the long-run totals agree (2%), but individual years differ by up to about 25% (2015: 1884 vs 2352 mm; 2020: 2850 vs 2466 mm)
+  and the seasons differ: POWER is wetter in Nov-Dec (441 vs 322 mm in Nov, 275 vs 178 mm in Dec) and drier in Mar-May (e.g. Mar 61 vs 106 mm).
+- **Iowa:** the two products follow each other very closely year to year (r = 0.99) but POWER is about 17% lower, in every year (2020: 664 vs 839 mm)
+  and in almost every month. For Jun-Sep, the window the app uses for Iowa, the 2015-2024 means are about 384 mm (POWER) vs 453 mm (IMERG).
+- **What this means for the app:** rainfall supply is uncertain by roughly +-15-20% depending on the product, and the rainfed Iowa scores (where
+  rain is only just below the crop need) are sensitive to it. Which product is closer to the truth was not tested; that needs station data
+  (for example NOAA records for Iowa).
+- **In the app:** a one-line version appears in "Information gaps" for the Kedah and Iowa demo sites only (`src/data/rainfallCheck.ts`;
+  a test keeps the wording and the numbers in step). Cameron Highlands and custom locations show no such note.
+- **Limits:** a 0.5 degree box average is compared with one POWER grid cell, so some of the difference is the area. The IMERG file for Cameron
+  Highlands was not provided, so there is no comparison there. IMERG was not used in any score.
+
 ## Verification log
 
 - FAO Training Manual 3 (irrigation water needs), ch. 2, Tables 4-5: growing periods and seasonal water needs for

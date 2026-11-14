@@ -90,6 +90,8 @@ export function explain(
   hasLayer = satellite !== null,
   /** True when the soil texture/organic matter came from ISRIC SoilGrids (non-NASA, beta). */
   soilFromGrids = false,
+  /** One-line rainfall cross-check for the demo sites (data/rainfallCheck.ts), or null. */
+  rainNote: string | null = null,
 ): Explanation {
   const r = s.result
   const why: string[] = []
@@ -210,5 +212,6 @@ export function explain(
         ? 'Satellite greenness for this location is shown in the "What the satellite sees" panel. In one-crop-per-year mode it cannot be attributed to a single rotation year, and it is not used to score rotations.'
         : 'No satellite vegetation layer for this location: it is bundled only for demo locations whose MODIS pixel is verified farmland, because the live MODIS service is too slow to call in the app.',
   )
+  if (rainNote) gaps.push(rainNote)
   return { why, evidence, benefits, gaps, risks }
 }
