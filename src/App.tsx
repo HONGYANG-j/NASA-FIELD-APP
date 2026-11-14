@@ -15,6 +15,7 @@ import { sensitivityCheck } from './lib/sensitivity'
 import type { Sensitivity } from './lib/sensitivity'
 import { AssistantPage } from './components/AssistantPage'
 import { StartScreen } from './components/StartScreen'
+import type { FillMode } from './components/StartScreen'
 import { fetchAssistStatus } from './lib/assistClient'
 import type { AssistStatus } from './lib/assistClient'
 import { applyPatch } from './lib/assistSchema'
@@ -101,13 +102,19 @@ function initialSetup(): Inputs {
   return merged
 }
 
-const PAGE_IDS: PageId[] = ['start', 'setup', 'assistant', 'summary', 'climate', 'satellite', 'rotations', 'data']
+const PAGE_IDS: PageId[] = ['start', 'summary', 'climate', 'satellite', 'rotations', 'data']
 
 /** The page named in the address (#/climate). With none: the summary for a share link, otherwise the start screen. */
 function readTab(): PageId {
   const id = window.location.hash.replace(/^#\/?/, '')
   if ((PAGE_IDS as string[]).includes(id)) return id as PageId
+  if (id === 'assistant' || id === 'setup') return 'start'
   return window.location.search.includes('p=') ? 'summary' : 'start'
+}
+
+/** Name of the chosen place, or null for a point that has not been chosen yet. */
+function placeLabel(i: Inputs): string {
+  return i.presetId === CUSTOM_PRESET_ID ? `Custom point ${i.lat}, ${i.lon}` : (PRESETS.find((p) => p.id === i.presetId)?.name ?? '')
 }
 
 function App() {
@@ -281,14 +288,25 @@ function App() {
       : (PRESETS.find((p) => p.id === inputs.presetId)?.name ?? '')
   const isMobile = useMedia('(max-width: 860px)')
   const [tabRaw, setTabRaw] = useState<PageId>(readTab)
+  // The results stay locked until a place has been chosen on the first page. A share link or a results address counts as chosen.
+  const [picked, setPicked] = useState<string | null>(() => (readTab() !== 'start' ? placeLabel(inputs) : null))
+  const [fill, setFill] = useState<FillMode>('ai')
+  const [fillTouched, setFillTouched] = useState(false)
   useEffect(() => {
-    const on = () => setTabRaw(readTab())
+    const on = () => {
+      const next = readTab()
+      // A results address typed before a place is chosen shows the first page, and the address is corrected to match.
+      if (picked === null && next !== 'start') {
+        window.history.replaceState(null, '', '#/start')
+        setTabRaw('start')
+      } else setTabRaw(next)
+    }
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
-  }, [])
-  // "Setup" is a page on phones only; on a wide screen the inputs are the side panel.
-  const tab: PageId = tabRaw === 'setup' && !isMobile ? 'summary' : tabRaw
+  }, [picked])
+  const tab: PageId = picked === null ? 'start' : tabRaw
   const goTo = (id: PageId) => {
+    if (id !== 'start' && picked === null) return
     if (window.location.hash !== `#/${id}`) window.location.hash = `/${id}`
     window.scrollTo({ top: 0 })
   }
@@ -330,6 +348,8 @@ function App() {
   const ready = data.status === 'ready'
   // Is the AI assistant switched on for this site? (null while we ask)
   const [assistStatus, setAssistStatus] = useState<AssistStatus | null>(null)
+  // Until the visitor picks, open the AI if it is switched on and the form if it is not.
+  const fillShown: FillMode = fillTouched ? fill : assistStatus && !assistStatus.configured ? 'manual' : fill
   useEffect(() => {
     const ctrl = new AbortController()
     fetchAssistStatus(ctrl.signal).then((s) => {
@@ -342,57 +362,62 @@ function App() {
     <>
       <TopBar place={placeName} onShare={() => goTo('data')} />
       <div className="app">
+        <PageTabs tab={tab} onChange={goTo} locked={picked === null} />
+
         {tab === 'start' ? (
           <StartScreen
             inputs={inputs}
             loading={data.status === 'loading'}
             failed={data.status === 'error'}
-            status={assistStatus}
+            picked={picked}
+            onPicked={setPicked}
             onPreset={onPreset}
             onPickPoint={onPickPoint}
             onLoadCustom={onLoadCustom}
             onChange={patch}
-            onChoose={(path) => goTo(path === 'ai' ? 'assistant' : isMobile ? 'setup' : 'summary')}
-            onSkip={() => goTo('summary')}
-          />
-        ) : (
-          <>
-        <PageTabs tab={tab} onChange={goTo} isMobile={isMobile} />
-
-        <div className="layout">
-          <aside id="farm" className={tab === 'setup' ? '' : 'mobile-hidden'}>
-            <Controls
-              inputs={inputs}
-              onPickPoint={onPickPoint}
-              autoMonth={autoMonth}
-              onChange={patch}
-              onPreset={onPreset}
-              onLoadCustom={onLoadCustom}
-              loading={data.status === 'loading'}
-              gridElevationM={gridElev}
-            />
-            <button type="button" className="mobile-only see-results" onClick={() => goTo('summary')}>See results →</button>
-          </aside>
-
-          <main className="app-main">
-            {data.status === 'loading' && tab !== 'setup' && tab !== 'assistant' && <Skeleton />}
-            {data.status === 'error' && tab !== 'setup' && tab !== 'assistant' && (
-              <div className="status error" role="alert">
-                <p>{data.error}</p>
-                <button type="button" onClick={() => { setFormError(null); setReloadKey((k) => k + 1) }}>Try again</button>
-              </div>
-            )}
-
-            <div {...panel('assistant')}>
+            fill={fillShown}
+            onFill={(m) => { setFill(m); setFillTouched(true) }}
+            ai={
               <AssistantPage
                 inputs={inputs}
                 place={inputs.presetId === CUSTOM_PRESET_ID ? 'a custom point chosen by the user' : placeName}
                 status={assistStatus}
                 onApply={(p) => setInputs((prev) => applyPatch(prev, p))}
                 onSeeResults={() => goTo('summary')}
-                onSetup={() => goTo(isMobile ? 'setup' : 'summary')}
+                onSetup={() => { setFill('manual'); setFillTouched(true) }}
               />
-            </div>
+            }
+            manual={
+              <Controls
+                inputs={inputs}
+                onPickPoint={onPickPoint}
+                autoMonth={autoMonth}
+                onChange={patch}
+                onPreset={onPreset}
+                onLoadCustom={onLoadCustom}
+                loading={data.status === 'loading'}
+                gridElevationM={gridElev}
+                hideLocation
+              />
+            }
+            onShowResults={() => goTo('summary')}
+            onSkip={() => {
+              onPreset('kedah')
+              setPicked(PRESETS[0].name)
+              goTo('summary')
+            }}
+          />
+        ) : (
+        <div className="results">
+
+          <main className="app-main">
+            {data.status === 'loading' && <Skeleton />}
+            {data.status === 'error' && (
+              <div className="status error" role="alert">
+                <p>{data.error}</p>
+                <button type="button" onClick={() => { setFormError(null); setReloadKey((k) => k + 1) }}>Try again</button>
+              </div>
+            )}
 
             <div {...panel('summary')}>
               <Hero />
@@ -404,6 +429,12 @@ function App() {
                     {inputs.irrigated ? ' irrigation available' : ' rainfed'}; current rotation: {inputs.current.map((c) => CROP_BY_ID[c]?.name ?? c).join(', ')}.
                     Printed from {window.location.origin}.
                   </p>
+                  <section className="setup-summary" aria-label="Your setup">
+                    <span className="chip-static">{placeName}</span>
+                    <span className="chip-static">{inputs.current.map((c) => CROP_BY_ID[c]?.name ?? c).join(' → ')}</span>
+                    <span className="chip-static">{inputs.irrigated ? 'Irrigation available' : 'Rainfed'}</span>
+                    <button type="button" className="ghost" onClick={() => goTo('start')}>Edit your farm</button>
+                  </section>
                   {bestAlt && (
                     <section className="glance" aria-label="Result at a glance">
                       <div className="glance-rings">
@@ -608,7 +639,6 @@ function App() {
             </div>
           </main>
         </div>
-          </>
         )}
 
         <footer className="app-footer">

@@ -181,7 +181,7 @@ export function stateFromInputs(i: Inputs, place: string): AssistState {
 /** Parses the model's text into a validated reply. Never throws: unusable output becomes a plain message with no changes. */
 export function parseModelOutput(text: string): AssistReply {
   const fallback: AssistReply = {
-    reply: 'Sorry, I could not work that out. Could you say it another way, or fill the form in by hand on the Setup page?',
+    reply: 'Sorry, I could not work that out. Could you say it another way, or use “Fill in myself”?',
     patch: {},
     ready: false,
   }

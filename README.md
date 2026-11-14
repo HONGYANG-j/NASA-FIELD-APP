@@ -9,6 +9,10 @@ and information gaps. It supports farmers; it does not replace local expertise.
 Licence: **Apache License 2.0** (`LICENSE`), an OSI-approved open-source licence. Every source, dataset and package used is listed in
 [`REFERENCES.md`](REFERENCES.md). Independent entry: not affiliated with, endorsed by or sponsored by NASA; no NASA logos are used.
 
+**How the app is organised.** *First page, "Your farm":* choose the place (required), then describe the farm either by chatting with the optional AI
+assistant or by filling in the form. *Second page, the results:* Summary, Climate, Satellite, Rotations, and Data & share. The results stay locked until a
+place has been chosen, and "Your farm" in the menu goes back to change anything.
+
 ## Run it
 
 ```bash

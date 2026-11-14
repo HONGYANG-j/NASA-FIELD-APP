@@ -61,11 +61,11 @@ export async function askAssistant(
 }
 
 export const ERROR_TEXT: Record<AssistError, string> = {
-  not_configured: 'The AI assistant is not switched on for this site right now. You can do everything by hand on the Setup page.',
+  not_configured: 'The AI assistant is not switched on for this site right now. You can do everything by hand under “Fill in myself”.',
   rate_limited: 'You are sending messages very quickly. Please wait a minute and try again.',
-  busy: 'The AI service is busy at the moment. Please try again in a minute, or use the Setup page.',
-  timeout: 'The AI service took too long to answer. Please try again, or use the Setup page.',
-  upstream: 'The AI service had a problem. Please try again, or use the Setup page.',
-  network: 'Could not reach the assistant. Check your connection, or use the Setup page.',
+  busy: 'The AI service is busy at the moment. Please try again in a minute, or use “Fill in myself”.',
+  timeout: 'The AI service took too long to answer. Please try again, or use “Fill in myself”.',
+  upstream: 'The AI service had a problem. Please try again, or use “Fill in myself”.',
+  network: 'Could not reach the assistant. Check your connection, or use “Fill in myself”.',
   invalid: 'The assistant sent a reply that could not be used. Please try again.',
 }

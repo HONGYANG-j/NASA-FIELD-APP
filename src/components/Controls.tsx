@@ -20,6 +20,8 @@ interface Props {
   loading: boolean
   /** Elevation of NASA POWER's grid cell for the loaded location. */
   gridElevationM: number | null
+  /** The location is chosen on the first page, so the form leaves out the location controls. */
+  hideLocation?: boolean
 }
 
 const PRIORITIES: { key: keyof Weights; label: string; help: string }[] = [
@@ -38,6 +40,7 @@ export function Controls({
   onLoadCustom,
   loading,
   gridElevationM,
+  hideLocation = false,
 }: Props) {
   const setW = (k: keyof Weights, v: number) => onChange({ weights: { ...inputs.weights, [k]: v } })
   const setCurrent = (i: number, id: string) => {
@@ -55,7 +58,9 @@ export function Controls({
   return (
     <form className="controls" onSubmit={(e) => e.preventDefault()}>
       <fieldset>
-        <legend>1. Your farm</legend>
+        <legend>{hideLocation ? '1. About your field' : '1. Your farm'}</legend>
+        {!hideLocation && (
+          <>
         <label>
           Location
           <select value={inputs.presetId} onChange={(e) => onPreset(e.target.value)}>
@@ -89,6 +94,8 @@ export function Controls({
               <MapPicker lat={inputs.lat} lon={inputs.lon} onPick={onPickPoint} />
             </Suspense>
           </div>
+        )}
+          </>
         )}
         <label>
           Rotation style

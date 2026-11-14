@@ -28,7 +28,7 @@ const STARTERS = [
   'What if it gets 2 °C warmer and 20% drier?',
 ]
 
-/** Chat that fills in the same form as the Setup page. The model proposes; the person confirms; the NASA-data engine scores. */
+/** Chat that fills in the same form as “Fill in myself”. The model proposes; the person confirms; the NASA-data engine scores. */
 export function AssistantPage({ inputs, place, status, onApply, onSeeResults, onSetup }: Props) {
   const [messages, setMessages] = useState<AssistMessage[]>([INTRO])
   const [text, setText] = useState('')
@@ -82,7 +82,7 @@ export function AssistantPage({ inputs, place, status, onApply, onSeeResults, on
     onApply(pending)
     setPending(null)
     setReady(false)
-    setNotice('Applied to your setup. You can see the fields on the Setup page, and keep chatting to change more.')
+    setNotice('Applied to your setup. You can check every field under “Fill in myself”, and keep chatting to change more.')
     if (thenResults) onSeeResults()
   }
 
