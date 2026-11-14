@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CUSTOM_PRESET_ID, PRESETS } from '../data/presets'
 import type { Inputs } from '../state'
+import { PlaceSearch } from './PlaceSearch'
 import './Assist.css'
 
 // Leaflet and the map CSS load only when someone opens the map.
@@ -18,6 +19,8 @@ interface Props {
   onPicked: (label: string) => void
   onPreset: (id: string) => void
   onPickPoint: (lat: number, lon: number) => void
+  /** A place found by name, pasted coordinates, or the device location. */
+  onSearchPick: (lat: number, lon: number, label: string) => void
   onLoadCustom: () => void
   onChange: (patch: Partial<Inputs>) => void
   fill: FillMode
@@ -36,7 +39,7 @@ const SUBTITLE: Record<string, string> = {
 }
 
 /** The first page: choose the place (required), then describe the farm by chatting with the AI or by filling in the form. */
-export function StartScreen({ inputs, loading, failed, picked, onPicked, onPreset, onPickPoint, onLoadCustom, onChange, fill, onFill, ai, manual, onShowResults, onSkip }: Props) {
+export function StartScreen({ inputs, loading, failed, picked, onPicked, onPreset, onPickPoint, onSearchPick, onLoadCustom, onChange, fill, onFill, ai, manual, onShowResults, onSkip }: Props) {
   const [custom, setCustom] = useState(() => (picked?.startsWith('Custom') ?? false))
   const [mapOpen, setMapOpen] = useState(false)
 
@@ -57,6 +60,9 @@ export function StartScreen({ inputs, loading, failed, picked, onPicked, onPrese
 
       <div className="card start-step">
         <h2><span className={`step-n ${picked ? 'done' : ''}`}>{picked ? '✓' : '1'}</span> Where is your farm? <small className="muted">(required)</small></h2>
+        <h3 className="sub">Search for your place</h3>
+        <PlaceSearch onChoose={(lat, lon, label) => { setCustom(false); setMapOpen(false); onSearchPick(lat, lon, label) }} />
+        <h3 className="sub">Or choose a demo site, or enter coordinates</h3>
         <div className="place-cards">
           {PRESETS.map((p) => (
             <button key={p.id} type="button" className={`place-card ${picked === p.name ? 'on' : ''}`} onClick={() => choosePreset(p.id, p.name)} aria-pressed={picked === p.name}>

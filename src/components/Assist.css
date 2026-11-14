@@ -57,3 +57,15 @@
   .bubble { max-width: 94%; }
 }
 @media print { .assist, .start { display: none !important; } }
+
+/* place search */
+.start-step h3.sub { margin: 4px 0 -4px; font-size: 0.82rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.place-search form { display: flex; flex-wrap: wrap; gap: 8px; }
+.place-search input[type=search] { flex: 1 1 260px; font: inherit; padding: 11px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--field); color: var(--text); min-width: 0; }
+.place-search input[type=search]:hover { border-color: var(--accent); }
+.place-note { margin: 6px 2px 0; min-height: 1.2em; font-size: 0.88rem; color: var(--warn); }
+.place-results { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.place-results button { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 1px; padding: 10px 16px; border-radius: 14px; background: var(--card); color: var(--text); border: 1px solid var(--line); font-weight: 500; }
+.place-results button:hover { border-color: var(--accent); filter: none; }
+.place-results span { color: var(--muted); font-size: 0.84rem; }
+.place-privacy { font-size: 0.78rem; margin: 6px 2px 0; }

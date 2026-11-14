@@ -20,7 +20,7 @@ export function Credits() {
         <li>
           <strong>Data.</strong> NASA POWER; NASA MODIS (LP DAAC, via the ORNL DAAC); Landsat and NASADEM (NASA/USGS, via Microsoft
           Planetary Computer); NASA SMAP SPL3SMP_E (NSIDC DAAC); NASA GPM IMERG (GES DISC, via Giovanni); NASA GIBS imagery. Also
-          FAO tables (Irrigation Water Management Training Manual 3; Irrigation and Drainage Paper 56; agro-ecological zones
+          Open-Meteo geocoding (GeoNames data, CC BY 4.0) for the place-name search; FAO tables (Irrigation Water Management Training Manual 3; Irrigation and Drainage Paper 56; agro-ecological zones
           assessment), ISRIC SoilGrids (CC BY 4.0), Wikipedia (elevation of Tanah Rata) and a REACH Malaysia weather summary. The
           full list with links is in REFERENCES.md and on the project submission page.
         </li>

@@ -290,6 +290,8 @@ function App() {
   const [tabRaw, setTabRaw] = useState<PageId>(readTab)
   // The results stay locked until a place has been chosen on the first page. A share link or a results address counts as chosen.
   const [picked, setPicked] = useState<string | null>(() => (readTab() !== 'start' ? placeLabel(inputs) : null))
+  // A searched place keeps its name in the header; a typed or clicked point shows its coordinates.
+  const shownPlace = inputs.presetId === CUSTOM_PRESET_ID && picked && !picked.startsWith('Custom point') ? picked : placeName
   const [fill, setFill] = useState<FillMode>('ai')
   const [fillTouched, setFillTouched] = useState(false)
   useEffect(() => {
@@ -360,7 +362,7 @@ function App() {
 
   return (
     <>
-      <TopBar place={placeName} onShare={() => goTo('data')} />
+      <TopBar place={shownPlace} onShare={() => goTo('data')} />
       <div className="app">
         <PageTabs tab={tab} onChange={goTo} locked={picked === null} />
 
@@ -373,6 +375,10 @@ function App() {
             onPicked={setPicked}
             onPreset={onPreset}
             onPickPoint={onPickPoint}
+            onSearchPick={(lat, lon, label) => {
+              onPickPoint(lat, lon)
+              setPicked(label)
+            }}
             onLoadCustom={onLoadCustom}
             onChange={patch}
             fill={fillShown}
@@ -425,12 +431,12 @@ function App() {
               {data.status === 'ready' && climate && table && (
                 <>
                   <p className="print-only">
-                    Setup: {placeName} ({site.lat}, {site.lon}); {inputs.mode === 'seasons' ? '3 seasons per year' : '1 main crop per year, 3-year cycle'};
+                    Setup: {shownPlace} ({site.lat}, {site.lon}); {inputs.mode === 'seasons' ? '3 seasons per year' : '1 main crop per year, 3-year cycle'};
                     {inputs.irrigated ? ' irrigation available' : ' rainfed'}; current rotation: {inputs.current.map((c) => CROP_BY_ID[c]?.name ?? c).join(', ')}.
                     Printed from {window.location.origin}.
                   </p>
                   <section className="setup-summary" aria-label="Your setup">
-                    <span className="chip-static">{placeName}</span>
+                    <span className="chip-static">{shownPlace}</span>
                     <span className="chip-static">{inputs.current.map((c) => CROP_BY_ID[c]?.name ?? c).join(' → ')}</span>
                     <span className="chip-static">{inputs.irrigated ? 'Irrigation available' : 'Rainfed'}</span>
                     <button type="button" className="ghost" onClick={() => goTo('start')}>Edit your farm</button>
@@ -645,7 +651,7 @@ function App() {
           <p className="muted privacy">
             <strong>Crop Rotation Explorer</strong>, a NASA Space Apps Challenge 2026 entry (Kuala Lumpur) for the challenge “Field Shift:
             Adapting Farms with NASA Data”. Privacy: there are no accounts, ads or tracking code in this app. For the three demo sites the climate data is a copy bundled with the app, so nothing about
-            your visit is sent to NASA; for any other point the location you choose is sent from your browser to NASA POWER, and to ISRIC SoilGrids only if you press the soil button; map pictures
+            your visit is sent to NASA; for any other point the location you choose is sent from your browser to NASA POWER, to Open-Meteo’s place search only if you type a place name and press Search, and to ISRIC SoilGrids only if you press the soil button (“Use my location” is read by your browser only, and just a point rounded to about 1 km is used); map pictures
             come from NASA GIBS. If you use the optional AI assistant, the messages you type and a short summary of the setup form (never
             your coordinates) go through this site’s server to Groq, which runs an open-weight model to write the replies; do not type
             personal details. Downloaded climate data is saved on your own device so it loads faster next time. The site is hosted on

@@ -21,6 +21,12 @@ Licence: **Apache License 2.0** (`LICENSE`), an OSI-approved open-source licence
 Reproduce it: `npm install`, `npm run verify` (build, 230+ tests, lint) and `npm run smoke` (checks a deployed copy: headers, assets, assistant route). The headline scores quoted in the
 submission are pinned by `src/lib/golden.test.ts`.
 
+**Choosing the place.** On the first page the place can be found by name (villages, towns, districts, mountains, airports; Open-Meteo geocoder, GeoNames data), by
+pasted coordinates (for example `6.12, 100.36` or a map link with `@lat,lon`), by the device location ("Use my location"), by the satellite map, or from three
+demo sites. Street addresses are **not** supported on purpose: the climate data is on cells about 50 km wide, and the free geocoder (and its terms) do not cover
+addresses or personal data. Any chosen point is rounded to about 1 km. The search runs only when Search is pressed (never as you type), the typed text goes to
+Open-Meteo (disclosed in the footer and next to the box), and the security policy allows only that one extra host.
+
 **How the app is organised.** *First page, "Your farm":* choose the place (required), then describe the farm either by chatting with the optional AI
 assistant or by filling in the form. *Second page, the results:* Summary, Climate, Satellite, Rotations, and Data & share. The results stay locked until a
 place has been chosen, and "Your farm" in the menu goes back to change anything.

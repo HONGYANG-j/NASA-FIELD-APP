@@ -20,7 +20,7 @@ check('licence and AI-assistance metadata present', /name="license" content="Apa
 
 const csp = home.headers.get('content-security-policy') ?? ''
 check('Content-Security-Policy set, no inline scripts, no framing', /script-src 'self'/.test(csp) && !/script-src[^;]*unsafe/.test(csp) && /frame-ancestors 'none'/.test(csp))
-check('CSP allows only the expected outside hosts', ['power.larc.nasa.gov', 'rest.isric.org', 'gibs.earthdata.nasa.gov'].every((h) => csp.includes(h)) && !/\*/.test(csp))
+check('CSP allows only the expected outside hosts', ['power.larc.nasa.gov', 'rest.isric.org', 'gibs.earthdata.nasa.gov', 'geocoding-api.open-meteo.com'].every((h) => csp.includes(h)) && !/\*/.test(csp))
 check('other security headers', home.headers.get('x-content-type-options') === 'nosniff' && home.headers.get('x-frame-options') === 'DENY' && /strict-origin/.test(home.headers.get('referrer-policy') ?? ''))
 
 // every script and stylesheet the page loads must exist and have the right type

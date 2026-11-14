@@ -27,6 +27,7 @@ Licence of this project's original code and content: **Apache License 2.0** (see
 | FAO agro-ecological land resources assessment, Technical Annex 4 and thermal zones | Temperature bands. https://www.fao.org/4/t0742e/T0742E11.htm , https://www.fao.org/4/t0741e/T0741E06.htm |
 | ISRIC SoilGrids v2.0 (CC BY 4.0), optional soil fill | https://www.isric.org/explore/soilgrids |
 | ESA WorldCover (CC BY 4.0), used only to choose a cropland pixel | https://esa-worldcover.org/ |
+| Open-Meteo Geocoding API, GeoNames data (CC BY 4.0), free for non-commercial use under 10,000 calls a day: finds a place by name on the first page | https://open-meteo.com/en/docs/geocoding-api |
 | Wikipedia, "Tanah Rata" (elevation about 1,440 m) | https://en.wikipedia.org/wiki/Tanah_Rata |
 | REACH Malaysia, Cameron Highlands weather summary (about 17.9 C) | https://reach.org.my/?p=5627 |
 | Department of Agriculture Malaysia (link only, for local advice) | https://www.doa.gov.my/ |
