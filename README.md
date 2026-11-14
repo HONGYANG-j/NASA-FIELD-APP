@@ -9,6 +9,18 @@ and information gaps. It supports farmers; it does not replace local expertise.
 Licence: **Apache License 2.0** (`LICENSE`), an OSI-approved open-source licence. Every source, dataset and package used is listed in
 [`REFERENCES.md`](REFERENCES.md). Independent entry: not affiliated with, endorsed by or sponsored by NASA; no NASA logos are used.
 
+## Judges: start here (60 seconds)
+
+1. Open **https://crop-rotation-explorer.pahang-risk-nav.workers.dev**. No login, no install. (To skip straight to results: add `?p=kedah` to the address.)
+2. **Your farm:** pick a place (Kedah, Cameron Highlands, Iowa, or your own coordinates), then either chat with the optional AI assistant or fill in the form, then press "See my results".
+3. **Summary:** four crop rotations ranked on a 0-100 scale, with a "how stable is this ranking?" check. **Rotations:** the evidence, benefits, risks and information gaps behind every score.
+4. **Satellite:** NASA MODIS, Landsat, SMAP and NASADEM evidence for the demo sites (shown beside the scores, not used in them). **Data & share:** which NASA data does what, "How we checked it", and "Intended use and limits".
+5. **What is NASA's here:** NASA POWER daily climate (2005-2024) drives every score; the satellite layers and GPM IMERG rainfall check are evidence. Full list with licences: [`REFERENCES.md`](REFERENCES.md).
+6. **What it is not:** not a yield, loss or price forecast; not validated against farm outcomes; not tested with farmers yet. Those limits are on the page and in "Production readiness" below.
+
+Reproduce it: `npm install`, `npm run verify` (build, 230+ tests, lint) and `npm run smoke` (checks a deployed copy: headers, assets, assistant route). The headline scores quoted in the
+submission are pinned by `src/lib/golden.test.ts`.
+
 **How the app is organised.** *First page, "Your farm":* choose the place (required), then describe the farm either by chatting with the optional AI
 assistant or by filling in the form. *Second page, the results:* Summary, Climate, Satellite, Rotations, and Data & share. The results stay locked until a
 place has been chosen, and "Your farm" in the menu goes back to change anything.

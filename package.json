@@ -10,7 +10,9 @@
     "test": "vitest run",
     "preview": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy",
-    "types": "wrangler types"
+    "types": "wrangler types",
+    "smoke": "node scripts/smoke.mjs",
+    "verify": "npm run build && npm test && npm run lint"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
