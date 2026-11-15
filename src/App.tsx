@@ -30,6 +30,8 @@ import { ScoreRing } from './components/ScoreRing'
 import { ShareBar } from './components/ShareBar'
 import { decodeShare, encodeShare } from './lib/share'
 import { ClimateChart } from './components/ClimateChart'
+import { PermanentCard } from './components/PermanentCard'
+import { permanentCheck } from './lib/permanent'
 import { Controls } from './components/Controls'
 import { StrategyCard } from './components/StrategyCard'
 import { CROP_BY_ID } from './data/crops'
@@ -283,6 +285,9 @@ function App() {
       years: ann.length,
     }
   }, [series])
+
+  // Temperature check for crops that stay in the ground for years. Uses the past record (elevation-corrected), not the what-if series.
+  const permanent = useMemo(() => (series ? permanentCheck(series, inputs.scenario.dTemp) : null), [series, inputs.scenario.dTemp])
 
   const baseline = strategies[0]?.result.overall ?? 0
   // The highest-scoring alternative to the current rotation (the first strategy is always the current one).
@@ -586,6 +591,7 @@ function App() {
                       </li>
                     </ul>
                   </section>
+                  {permanent && <PermanentCard result={permanent} userDTemp={inputs.scenario.dTemp} />}
                   <PageNav tab="climate" onChange={goTo} />
                 </>
               )}

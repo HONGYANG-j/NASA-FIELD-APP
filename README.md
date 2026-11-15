@@ -381,6 +381,16 @@ None of these change a score; they are read-only views of what the engine alread
   development refused to register any service worker (the script itself is served correctly), so a person should confirm once in Chrome (DevTools > Application > Service
   Workers, then Network > Offline) before relying on it.
 
+## Long-lived crops (temperature check, added 15 Nov 2026)
+
+Tea, Arabica coffee, oil palm and banana stay in the ground for years, so they are not rotated and are NOT in the rotation scores. The Climate page has a separate card, `src/components/PermanentCard.tsx` (logic and data in `src/lib/permanent.ts`), that asks one question: does this place's average temperature suit them, today and with +1 to +4 C of warming (plus the user's own what-if)?
+
+- **Source:** FAO Kenya agro-ecological assessment, Table 5.3 (nine thermal zones, 24-hour mean temperature) and Table 5.7 / Technical Annex 4 Table A4.2 (ratings S1 best to N not suitable per zone). Rows used: tea (code 561), Arabica coffee (511), oil palm (421), banana (411). The same source already backs the temperature bands in `data/crops.ts`.
+- **Method:** the 20-year mean of NASA POWER daily temperature (elevation-corrected) picks the thermal zone; the rating comes straight from the table. A value on a zone boundary belongs to the warmer zone.
+- **Not covered, and said on screen:** rainfall, soil, frost, heat waves, drought years, pests and disease; so it is a first filter, not a forecast of survival. Cocoa, rubber and olive are left out because the FAO table has no row for them and we did not invent values.
+- **Limit:** the table is a Kenya case study (equatorial, little seasonality). Where the warmest and coldest months differ by more than 6 C (Iowa: well over 20 C) the card says the result is indicative only.
+- **Tests:** `src/lib/permanent.test.ts` (zone boundaries, the table as typed in against FAO Table A4.1, and the three demo sites on real NASA data).
+
 ## Production readiness (an honest review)
 
 What was added on 15 Nov 2026 to move a competition prototype toward a service that could be piloted, **without changing any score**:
