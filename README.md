@@ -317,7 +317,7 @@ Code: `src/data/soils.ts` (every rule with effect, reasoning, source and evidenc
   verified texture-to-erodibility table. So there is no rule that raises rice water need on sandy soil.
 - ISRIC SoilGrids v2.0 (https://rest.isric.org/soilgrids/v2.0/docs) is NOT a NASA source and the REST service is beta. Optional "Fill from SoilGrids"
   button: clay/sand/silt and organic carbon averaged over 0-30 cm -> texture (clay >= 40% clay; sand >= 50% and clay < 20% sandy; else loam) and
-  organic matter (carbon < 10 g/kg low, > 20 g/kg high; thresholds UNVERIFIED). It never fills drainage. 20 s timeout, one attempt, cached in `localStorage`.
+  organic matter (carbon < 10 g/kg low, > 20 g/kg high; thresholds UNVERIFIED). It never fills drainage. 20 s timeout; a short outage (HTTP 502/503/504 or a dropped connection) is retried at most twice with a pause (never a 429 or a timeout); cached in `localStorage`.
 - Reliability test, 14 Nov 2026 (`node scripts/probe-soilgrids.mjs 4`, plus a browser run): 15 of 15 script requests (5 rounds x 3 points) returned HTTP 200 with identical values each
   round, 2-11 s each, CORS open. One later request in the browser exceeded 20 s and timed out (the app shows a message and keeps manual input).
   The exact Cameron Highlands point (4.47, 101.38) returns null for every layer (no modelled value there; 4.50,101.40 and 4.47,101.45 have data), so the

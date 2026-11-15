@@ -72,10 +72,25 @@ export interface FetchOptions {
   signal?: AbortSignal
   fetchImpl?: typeof fetch
   timeoutMs?: number
+  /** Pause before each retry of a short outage (502/503/504 or no connection). Its length is the number of retries. */
+  retryDelaysMs?: number[]
+}
+
+export const SOILGRIDS_RETRY_DELAYS_MS = [1500, 3000]
+
+/** Waits, or rejects with the caller's abort reason if they cancel while waiting. */
+function pause(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(resolve, ms)
+    signal?.addEventListener('abort', () => {
+      clearTimeout(t)
+      reject(signal.reason ?? new DOMException('aborted', 'AbortError'))
+    }, { once: true })
+  })
 }
 
 export async function fetchSoilGrids(lat: number, lon: number, opts: FetchOptions = {}): Promise<SoilGridsResult> {
-  const { keepDrainage = 'unknown', signal, fetchImpl = fetch, timeoutMs = SOILGRIDS_TIMEOUT_MS } = opts
+  const { keepDrainage = 'unknown', signal, fetchImpl = fetch, timeoutMs = SOILGRIDS_TIMEOUT_MS, retryDelaysMs = SOILGRIDS_RETRY_DELAYS_MS } = opts
   const url = soilGridsUrl(lat, lon)
   const key = CACHE_PREFIX + url
   const done = (json: SoilGridsResponse, fromCache: boolean): SoilGridsResult => {
@@ -94,20 +109,31 @@ export async function fetchSoilGrids(lat: number, lon: number, opts: FetchOption
   } catch {
     /* storage unavailable or corrupt: fall through to network */
   }
-  // One attempt with a hard timeout: ISRIC documents a low rate limit, so no retry loop.
-  const timeout = AbortSignal.timeout(timeoutMs)
-  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout
-  let text: string
-  try {
-    const res = await fetchImpl(url, { signal: combined })
-    if (!res.ok)
-      return { ok: false, reason: 'http', message: `SoilGrids answered HTTP ${res.status}${res.status === 429 ? ' (too many requests, wait a minute)' : ''}. Choose the soil by hand.` }
-    text = await res.text()
-  } catch (e) {
-    if (signal?.aborted) throw e
-    if (timeout.aborted)
-      return { ok: false, reason: 'timeout', message: `SoilGrids did not answer within ${timeoutMs / 1000} s. Choose the soil by hand or try again.` }
-    return { ok: false, reason: 'network', message: 'Could not reach SoilGrids. Choose the soil by hand or try again.' }
+  // The service often answers 502/503/504 for a few seconds and then works (seen 15 Nov 2026: 503, then 200).
+  // So a short outage is retried, at most twice and with a pause, because ISRIC documents a low rate limit.
+  // Never retried: 429 (we are being asked to slow down), other HTTP errors, and a timeout (already 20 s).
+  let text = ''
+  for (let attempt = 0; ; attempt++) {
+    const canRetry = attempt < retryDelaysMs.length
+    const timeout = AbortSignal.timeout(timeoutMs)
+    const combined = signal ? AbortSignal.any([signal, timeout]) : timeout
+    let failure: SoilGridsResult
+    try {
+      const res = await fetchImpl(url, { signal: combined })
+      if (res.ok) {
+        text = await res.text()
+        break
+      }
+      failure = { ok: false, reason: 'http', message: `SoilGrids answered HTTP ${res.status}${res.status === 429 ? ' (too many requests, wait a minute)' : ''}. Choose the soil by hand${res.status === 429 ? '' : ' or try again in a minute'}.` }
+      if (!(res.status === 502 || res.status === 503 || res.status === 504)) return failure
+    } catch (e) {
+      if (signal?.aborted) throw e
+      if (timeout.aborted)
+        return { ok: false, reason: 'timeout', message: `SoilGrids did not answer within ${timeoutMs / 1000} s. Choose the soil by hand or try again.` }
+      failure = { ok: false, reason: 'network', message: 'Could not reach SoilGrids. Choose the soil by hand or try again.' }
+    }
+    if (!canRetry) return failure
+    await pause(retryDelaysMs[attempt], signal)
   }
   let json: SoilGridsResponse
   try {

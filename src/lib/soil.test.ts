@@ -393,10 +393,77 @@ describe('SoilGrids client: caching, timeout and graceful failure', () => {
     const down = vi.fn(async () => {
       throw new TypeError('Failed to fetch')
     }) as unknown as typeof fetch
-    expect(await fetchSoilGrids(3, 3, { fetchImpl: down })).toMatchObject({ ok: false, reason: 'network' })
+    expect(await fetchSoilGrids(3, 3, { fetchImpl: down, retryDelaysMs: [] })).toMatchObject({ ok: false, reason: 'network' })
     const junk = vi.fn(async () => new Response('<html>', { status: 200 })) as unknown as typeof fetch
     expect(await fetchSoilGrids(3, 3, { fetchImpl: junk })).toMatchObject({ ok: false, reason: 'bad-response' })
     expect(m.size).toBe(0)
+  })
+
+  describe('short outages (regression: HTTP 503 seen by a user on 15 Nov 2026)', () => {
+    const seq = (...steps: Array<number | 'down' | unknown>) => {
+      let i = 0
+      return vi.fn(async () => {
+        const s = steps[Math.min(i++, steps.length - 1)]
+        if (s === 'down') throw new TypeError('Failed to fetch')
+        if (typeof s === 'number') return new Response('busy', { status: s })
+        return new Response(JSON.stringify(s), { status: 200 })
+      }) as unknown as typeof fetch
+    }
+
+    it('tries again after a 503 and succeeds, without the user pressing the button twice', async () => {
+      const m = store()
+      const f = seq(503, kedah)
+      const r = await fetchSoilGrids(6.25, 100.35, { fetchImpl: f, retryDelaysMs: [1, 1] })
+      expect(r.ok).toBe(true)
+      expect(f).toHaveBeenCalledTimes(2)
+      expect(m.size).toBe(1)
+    })
+
+    it('also retries 502, 504 and a dropped connection', async () => {
+      store()
+      const f = seq(502, 'down', iowa)
+      const r = await fetchSoilGrids(41.95, -93.55, { fetchImpl: f, retryDelaysMs: [1, 1] })
+      expect(r.ok).toBe(true)
+      expect(f).toHaveBeenCalledTimes(3)
+      store()
+      expect((await fetchSoilGrids(5, 5, { fetchImpl: seq(504, kedah), retryDelaysMs: [1] })).ok).toBe(true)
+    })
+
+    it('gives up after two retries (three requests at most) and reports the last error', async () => {
+      const m = store()
+      const f = seq(503)
+      const r = await fetchSoilGrids(6, 6, { fetchImpl: f, retryDelaysMs: [1, 1] })
+      expect(r).toMatchObject({ ok: false, reason: 'http' })
+      if (!r.ok) expect(r.message).toMatch(/503.*try again in a minute/)
+      expect(f).toHaveBeenCalledTimes(3)
+      expect(m.size).toBe(0)
+    })
+
+    it('never retries 429 (asked to slow down), other HTTP errors, or a timeout', async () => {
+      store()
+      for (const status of [429, 400, 404, 500]) {
+        const f = seq(status)
+        expect(await fetchSoilGrids(7, 7, { fetchImpl: f, retryDelaysMs: [1, 1] })).toMatchObject({ ok: false, reason: 'http' })
+        expect(f).toHaveBeenCalledTimes(1)
+      }
+      const hang = vi.fn((_: unknown, init?: RequestInit) =>
+        new Promise((_res, rej) => {
+          init?.signal?.addEventListener('abort', () => rej(new DOMException('aborted', 'AbortError')))
+        })) as unknown as typeof fetch
+      expect(await fetchSoilGrids(8, 8, { fetchImpl: hang, timeoutMs: 30, retryDelaysMs: [1, 1] })).toMatchObject({ ok: false, reason: 'timeout' })
+      expect(hang).toHaveBeenCalledTimes(1)
+    })
+
+    it('stops at once if the place changes while it is waiting to retry', async () => {
+      store()
+      const ctrl = new AbortController()
+      const f = seq(503)
+      const p = fetchSoilGrids(9, 9, { fetchImpl: f, signal: ctrl.signal, retryDelaysMs: [5000] })
+      await new Promise((r) => setTimeout(r, 20))
+      ctrl.abort()
+      await expect(p).rejects.toMatchObject({ name: 'AbortError' })
+      expect(f).toHaveBeenCalledTimes(1)
+    })
   })
 
   it('lets the caller cancel (location changed)', async () => {
