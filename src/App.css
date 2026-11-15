@@ -276,8 +276,8 @@ summary:hover { color: var(--accent); }
 .chart { width: 100%; height: auto; max-width: 640px; }
 .chart-grid { stroke: var(--line); stroke-width: 1; }
 .chart-bar { fill: var(--bar); }
-.chart-line { stroke: var(--line-series); stroke-width: 2.5; }
-.chart-dot { fill: var(--line-series); }
+.chart-line { stroke: var(--line-series); stroke-width: 2.5; filter: drop-shadow(0 0 1.5px var(--card)); }
+.chart-dot { fill: var(--line-series); stroke: var(--card); stroke-width: 1.5; }
 .chart-label { fill: var(--muted); font-size: 11px; }
 .chart-axis { fill: var(--muted); font-size: 10px; }
 .legend { font-size: 0.82rem; color: var(--muted); margin: 4px 0; }

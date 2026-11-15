@@ -15,8 +15,9 @@
   --warn: #8f5200;
   --warn-bg: #fff1d6;
   --bad: #b3261e;
-  --bar: #7fb0d6;
-  --line-series: #c2410c;
+  /* Charts use the theme: green bars (a softer tint of the accent) and an amber line, in light and dark. */
+  --bar: color-mix(in srgb, var(--accent) 72%, var(--card));
+  --line-series: var(--accent-2);
   --shadow: 0 1px 2px rgb(23 35 30 / 0.06), 0 6px 18px rgb(23 35 30 / 0.06);
   --hero-from: #0a3a2d;
   --hero-to: #167656;
@@ -48,8 +49,6 @@
     --warn: #f0b14a;
     --warn-bg: #2a2111;
     --bad: #ff8a80;
-    --bar: #4a7ea6;
-    --line-series: #ff9966;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.25);
     --hero-from: #06241b;
     --hero-to: #0d5a44;
