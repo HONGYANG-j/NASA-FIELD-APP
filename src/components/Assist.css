@@ -25,16 +25,16 @@
 .chip-btn { background: var(--card); color: var(--text); border: 1px solid var(--line); font-weight: 500; font-size: 0.85rem; padding: 7px 14px; }
 .chip-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); filter: none; }
 
-.chat-form { display: flex; gap: 8px; align-items: flex-end; }
-.chat-form textarea { flex: 1; font: inherit; padding: 10px 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--field); color: var(--text); resize: vertical; min-height: 48px; max-height: 160px; }
+.chat-form { display: flex; gap: 8px; align-items: flex-end; min-width: 0; }
+.chat-form textarea { flex: 1; min-width: 0; font: inherit; padding: 10px 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--field); color: var(--text); resize: vertical; min-height: 48px; max-height: 160px; }
 .chat-form textarea:hover:not(:disabled) { border-color: var(--accent); }
 .assist-privacy { font-size: 0.78rem; margin: 0; }
 
 /* start screen */
-.start { max-width: 920px; margin: 8px auto 0; display: grid; gap: 22px; }
+.start { max-width: 920px; margin: 8px auto 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
 .start h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); margin: 0; }
 .start .lede { color: var(--muted); margin: 6px 0 0; max-width: 60ch; }
-.start-step { display: grid; gap: 12px; }
+.start-step { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .start-step h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 1.1rem; }
 .step-n { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--accent); color: var(--on-accent); font-size: 0.85rem; font-weight: 800; }
 .step-n.done { background: var(--good); }
@@ -69,3 +69,9 @@
 .place-results button:hover { border-color: var(--accent); filter: none; }
 .place-results span { color: var(--muted); font-size: 0.84rem; }
 .place-privacy { font-size: 0.78rem; margin: 6px 2px 0; }
+
+/* very narrow phones: the Send button goes under the text box so the box keeps the full width */
+@media (max-width: 420px) {
+  .chat-form { flex-direction: column; align-items: stretch; }
+  .chat-form button[type='submit'] { width: 100%; }
+}

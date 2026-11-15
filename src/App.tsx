@@ -303,7 +303,10 @@ function App() {
   const [fillTouched, setFillTouched] = useState(false)
   // "Save my farm on this device": remembered in this browser only, offered again on the next visit (not when a share link is opened).
   const [saved, setSaved] = useState<SavedFarm | null>(() => (decodeShare(window.location.search) ? null : loadSaved()))
-  const [saveOn, setSaveOn] = useState(true)
+  // 'auto': remember changes. 'sharedView': opened from a share link, so nothing is saved until the visitor chooses a place of their own. 'forgotten': the visitor pressed Forget it.
+  const [saveState, setSaveState] = useState<'auto' | 'sharedView' | 'forgotten'>(() => (decodeShare(window.location.search) ? 'sharedView' : 'auto'))
+  const saveOn = saveState === 'auto'
+  const choseOwnPlace = () => setSaveState((s) => (s === 'sharedView' ? 'auto' : s))
   useEffect(() => {
     if (picked !== null && saveOn) saveFarm(inputs, shownPlace)
   }, [inputs, picked, saveOn, shownPlace])
@@ -315,11 +318,12 @@ function App() {
     setSite({ lat: next.lat, lon: next.lon })
     setPicked(saved.label)
     setSaved(null)
+    setSaveState('auto')
   }
   const forgetSaved = () => {
     forgetFarm()
     setSaved(null)
-    setSaveOn(false)
+    setSaveState('forgotten')
   }
   const online = useOnline()
   useEffect(() => {
@@ -347,6 +351,7 @@ function App() {
     if (inputs.presetId === CUSTOM_PRESET_ID && (inputs.lat !== site.lat || inputs.lon !== site.lon)) {
       if (!onLoadCustom()) return
       setPicked(`Custom point ${inputs.lat}, ${inputs.lon}`)
+      choseOwnPlace()
     }
     goTo('summary')
   }
@@ -415,12 +420,16 @@ function App() {
             loading={data.status === 'loading'}
             failed={data.status === 'error'}
             picked={picked}
-            onPicked={setPicked}
+            onPicked={(label) => {
+              setPicked(label)
+              choseOwnPlace()
+            }}
             onPreset={onPreset}
             onPickPoint={onPickPoint}
             onSearchPick={(lat, lon, label) => {
               onPickPoint(lat, lon)
               setPicked(label)
+              choseOwnPlace()
             }}
             onLoadCustom={onLoadCustom}
             formError={formError}
@@ -458,6 +467,7 @@ function App() {
             onSkip={() => {
               onPreset('kedah')
               setPicked(PRESETS[0].name)
+              choseOwnPlace()
               goTo('summary', true)
             }}
           />

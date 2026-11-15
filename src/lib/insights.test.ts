@@ -115,3 +115,41 @@ describe('saved farm', () => {
     expect(s.patch).toEqual({ weights: { water: 5 } })
   })
 })
+
+async function iowa(weights: { water: number; soil: number; income: number; resilience: number }) {
+  const p = PRESETS.find((x) => x.id === 'iowa')!
+  const r = await loadDaily(p.lat, p.lon, 2005, 2024)
+  const series = applyElevation(r.series, r.gridElevationM, null)
+  const current = p.current.map((c) => CROP_BY_ID[c])
+  const opts = { mode: p.mode, irrigated: p.irrigated, soil: UNKNOWN_SOIL }
+  const start = bestStartMonth(series, NO_SCENARIO, current, opts)
+  const table = buildSlotTable(series, NO_SCENARIO, start, opts)
+  return buildStrategies(current, table, weights, new Set(p.crops))
+}
+
+describe('whyFirst wording (regression: found in the 15 Nov bug sweep)', () => {
+  it('never says a crop was "added" when it is already in the current rotation', async () => {
+    // Income-first priorities: the top rotation reuses Soybean, which the current Iowa rotation already has.
+    const [current, best] = await iowa({ water: 0, soil: 0, income: 5, resilience: 0 })
+    expect(current.result.crops.map((c) => c.id)).toContain('soybean')
+    expect(best.result.crops.map((c) => c.id)).toContain('soybean')
+    const text = whyFirst(best, current).join(' ')
+    expect(text).not.toMatch(/adding[^.]*Soybean/)
+    expect(text).toMatch(/keeps it covered/)
+  })
+  it('names only genuinely new cover or legume crops', async () => {
+    const [current, best] = await iowa({ water: 5, soil: 5, income: 0, resilience: 0 })
+    const text = whyFirst(best, current).join(' ')
+    expect(text).toMatch(/keeps it covered, adding .*Clover/)
+    expect(text).not.toMatch(/adding[^.]*Soybean/)
+  })
+  it('does not claim the soil stays covered when the top rotation has its own bare fallow', async () => {
+    const [current, best] = await iowa({ water: 5, soil: 0, income: 0, resilience: 0 })
+    expect(best.result.crops.some((c) => c.group === 'fallow')).toBe(true)
+    expect(whyFirst(best, current).join(' ')).not.toMatch(/keeps it covered/)
+  })
+  it('uses short names in sentences, never "income (rough) (+n)"', async () => {
+    const [current, best] = await iowa({ water: 0, soil: 0, income: 5, resilience: 0 })
+    expect(whyFirst(best, current).join(' ')).not.toMatch(/\(rough\)/)
+  })
+})

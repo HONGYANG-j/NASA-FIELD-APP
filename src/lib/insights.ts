@@ -17,6 +17,9 @@ const DIM_ORDER: DimKey[] = ['climate', 'resilience', 'water', 'soil', 'income']
 
 const pts = (x: number) => Math.round(x * 100)
 
+/** Short names used inside sentences (the table keeps the fuller labels). */
+const SHORT: Record<DimKey, string> = { climate: 'climate fit', resilience: 'reliability', water: 'water use', soil: 'soil health', income: 'income' }
+
 /** Gains and losses of one rotation against another, in rounded points, largest first. Differences under 3 points are left out. */
 export function dimChanges(a: Strategy, b: Strategy): { gains: { key: DimKey; pts: number }[]; losses: { key: DimKey; pts: number }[] } {
   const d = DIM_ORDER.map((key) => ({ key, pts: pts(a.result.dims[key]) - pts(b.result.dims[key]) }))
@@ -38,16 +41,19 @@ export function whyFirst(best: Strategy, current: Strategy): string[] {
     return out
   }
   if (gains.length) {
-    out.push(`It comes first mainly because of ${list(gains.slice(0, 2).map((g) => `${DIM_LABEL[g.key]} (+${g.pts})`))}.`)
+    out.push(`It comes first mainly because of ${list(gains.slice(0, 2).map((g) => `${SHORT[g.key]} (+${g.pts})`))}.`)
   } else {
     out.push('It comes first by a small margin spread across the sub-scores.')
   }
   const fallow = current.result.crops.some((c) => c.group === 'fallow')
-  const covers = best.result.crops.filter((c) => c.group === 'cover' || c.group === 'forage' || c.group === 'legume').map((c) => c.name)
-  if (fallow && gains.some((g) => g.key === 'soil') && covers.length) {
-    out.push(`Your current rotation leaves the soil bare for a season; this one keeps it covered and adds ${list(Array.from(new Set(covers)))}.`)
+  // Only claim the soil stays covered when the top rotation has no fallow of its own, and only name crops that are new compared with the current rotation.
+  const currentIds = new Set(current.result.crops.map((c) => c.id))
+  const bestHasFallow = best.result.crops.some((c) => c.group === 'fallow')
+  const added = Array.from(new Set(best.result.crops.filter((c) => (c.group === 'cover' || c.group === 'forage' || c.group === 'legume') && !currentIds.has(c.id)).map((c) => c.name)))
+  if (fallow && !bestHasFallow && gains.some((g) => g.key === 'soil')) {
+    out.push(`Your current rotation leaves the soil bare for a season; this one keeps it covered${added.length ? `, adding ${list(added)}` : ''}.`)
   }
-  if (losses.length) out.push(`The trade-off: it scores lower on ${list(losses.slice(0, 2).map((l) => `${DIM_LABEL[l.key]} (${l.pts})`))}.`)
+  if (losses.length) out.push(`The trade-off: it scores lower on ${list(losses.slice(0, 2).map((l) => `${SHORT[l.key]} (${l.pts})`))}.`)
   return out
 }
 

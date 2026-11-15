@@ -6,6 +6,20 @@
 //   - Everything else (the /api/ assistant route, NASA and other outside services) is never touched or stored.
 const CACHE = 'pvc-offline-v1'
 const SHELL = '/'
+// Each release adds new uniquely named files. Keep at most this many entries; the oldest go first (never the page or the icon).
+const MAX_ENTRIES = 120
+
+async function trim(cache) {
+  const keys = await cache.keys()
+  let extra = keys.length - MAX_ENTRIES
+  for (const k of keys) {
+    if (extra <= 0) break
+    const p = new URL(k.url).pathname
+    if (p === SHELL || p === '/favicon.svg') continue
+    await cache.delete(k)
+    extra--
+  }
+}
 
 async function saveShell() {
   const cache = await caches.open(CACHE)
@@ -17,6 +31,7 @@ async function saveShell() {
   const urls = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((m) => m[1])
   urls.push('/favicon.svg')
   await Promise.all(urls.map((u) => cache.add(u).catch(() => undefined)))
+  await trim(cache)
 }
 
 self.addEventListener('install', (event) => {
@@ -59,7 +74,7 @@ self.addEventListener('fetch', (event) => {
         return fetch(req).then((res) => {
           if (res.ok) {
             const copy = res.clone()
-            event.waitUntil(caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => undefined))
+            event.waitUntil(caches.open(CACHE).then(async (c) => { await c.put(req, copy); await trim(c) }).catch(() => undefined))
           }
           return res
         })

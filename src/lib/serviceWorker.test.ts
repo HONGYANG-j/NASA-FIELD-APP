@@ -16,6 +16,8 @@ function makeWorker(opts: { online: boolean; pages?: Record<string, string>; exi
       const m = store.get(name) ?? new Map<string, Response>()
       store.set(name, m)
       return {
+        keys: async () => [...m.keys()].map((p) => ({ url: ORIGIN + p })),
+        delete: async (r: { url: string } | string) => m.delete(key(typeof r === 'string' ? r : r.url)),
         put: async (r: RequestInfo | URL, res: Response) => void m.set(key(r), res),
         add: async (r: RequestInfo | URL) => {
           const res = await network(key(r))
@@ -121,6 +123,20 @@ describe('public/sw.js', () => {
     expect(await w.run('fetch', { request: w.request('/power', { origin: 'https://power.larc.nasa.gov' }) })).toBeNull()
     expect(await w.run('fetch', { request: w.request('/robots.txt') })).toBeNull()
     expect(w.calls).toEqual([])
+  })
+
+  it('keeps the saved copy from growing without limit: the oldest built files go first, the page and icon stay', async () => {
+    const many: Record<string, string> = { ...pages }
+    for (let i = 0; i < 140; i++) many[`/assets/old-${i}.js`] = 'x'
+    const w = makeWorker({ online: true, pages: many })
+    await w.run('install')
+    for (let i = 0; i < 140; i++) await w.run('fetch', { request: w.request(`/assets/old-${i}.js`) })
+    const cache = w.store.get('pvc-offline-v1')!
+    expect(cache.size).toBeLessThanOrEqual(120)
+    expect(cache.has('/')).toBe(true)
+    expect(cache.has('/favicon.svg')).toBe(true)
+    expect(cache.has('/assets/old-139.js')).toBe(true) // newest kept
+    expect(cache.has('/assets/old-0.js')).toBe(false) // oldest dropped
   })
 
   it('on activate, removes copies kept by older versions of itself and nothing else', async () => {
