@@ -361,6 +361,26 @@ start screen and is never changed by the assistant. It does **not** score anythi
 - **Not verified:** how well it copes with other languages beyond that, unusual crops, or long or confused conversations; no farmer has used it; and behaviour under
   Groq's free-tier limits (limits are per organisation and per model; check the Groq console). If Groq is busy the page says so and the manual setup still works.
 
+## Reading and keeping the results (added 15 Nov 2026)
+
+None of these change a score; they are read-only views of what the engine already produced.
+
+- **Why it comes first:** one or two plain sentences under "At a glance", built only from the engine's own sub-scores (`whyFirst` in `src/lib/insights.ts`): the biggest gains, a note when
+  a bare fallow is replaced by cover, and the trade-off.
+- **Compare two rotations side by side:** on the Rotations page, any two of the four, with the overall score, the five sub-scores and the crops season by season.
+- **Year by year:** inside each rotation card, one square per past year for each crop (the yearly climate fit the score is the average of), so a reader can see
+  whether a crop is reliably suited or fails in a few bad years. Past weather only, not a forecast.
+- **Download results (CSV):** on Data & share; every rotation, season and score, with a short header describing the setup. Text cells are defused against spreadsheet
+  formula injection, and the file carries a byte-order mark so Excel reads it correctly.
+- **Save my farm on this device:** the setup is remembered in this browser only (`localStorage`, never sent anywhere) and offered on the next visit ("Welcome back");
+  "Forget it" deletes it. Whatever is read back is validated by the same whitelist as the AI assistant's proposals. A share link never loads or overwrites a saved farm.
+- **Offline use:** a small service worker (`public/sw.js`) lets the app open without a connection. Page loads always try the network first (so an online visitor is never
+  shown an old version); built files have unique names and are served from the saved copy first; the assistant route and outside services are never touched. A button on
+  Data & share also keeps the three demo sites' data on the device. Escape hatch: open the app with `?offline=off` to remove the service worker and its saved copies.
+  The worker's rules are tested against a fake browser environment (`src/lib/serviceWorker.test.ts`). **Not verified in a real browser**: the embedded test browser used for
+  development refused to register any service worker (the script itself is served correctly), so a person should confirm once in Chrome (DevTools > Application > Service
+  Workers, then Network > Offline) before relying on it.
+
 ## Production readiness (an honest review)
 
 What was added on 15 Nov 2026 to move a competition prototype toward a service that could be piloted, **without changing any score**:

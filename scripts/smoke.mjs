@@ -33,6 +33,8 @@ for (const a of assets) {
 }
 const fav = await fetch(base + '/favicon.svg')
 check('favicon', fav.status === 200 && /svg/.test(fav.headers.get('content-type') ?? ''))
+const sw = await fetch(base + '/sw.js')
+check('service worker script is served as JavaScript', sw.status === 200 && /javascript/.test(sw.headers.get('content-type') ?? '') && /pvc-offline-/.test(await sw.text()))
 const robots = await fetch(base + '/robots.txt')
 check('robots.txt blocks /api/', robots.status === 200 && /Disallow: \/api\//.test(await robots.text()))
 const spa = await fetch(base + '/some/unknown/path')

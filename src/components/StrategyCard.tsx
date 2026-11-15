@@ -3,6 +3,7 @@ import { slotLabel, slotName } from '../lib/explain'
 import type { SlotTable, Strategy } from '../lib/rotation'
 import type { SlotNdvi } from '../lib/satellite'
 import { greenness } from '../lib/satellite'
+import { YearGrid } from './Insights'
 import { ScoreRing } from './ScoreRing'
 
 interface Props {
@@ -106,6 +107,10 @@ export function StrategyCard({ strategy, explanation, table, satellite, baseline
         ))}
       </dl>
 
+      <details>
+        <summary>Year by year: which years suited each crop</summary>
+        <YearGrid strategy={strategy} table={table} />
+      </details>
       <details>
         <summary>Evidence from NASA data</summary>
         <List items={explanation.evidence} />

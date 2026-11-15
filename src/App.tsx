@@ -10,6 +10,12 @@ import { Guide, Hero } from './components/Guide'
 import { PageNav, PageTabs, Pagination, Skeleton, TopBar } from './components/Chrome'
 import type { PageId } from './components/Chrome'
 import { RankList } from './components/RankList'
+import { CompareCard } from './components/Insights'
+import { OfflineCard } from './components/OfflineCard'
+import { resultsCsv, whyFirst } from './lib/insights'
+import { useOnline } from './lib/offline'
+import { forgetFarm, inputsFromSaved, loadSaved, saveFarm } from './lib/savedFarm'
+import type { SavedFarm } from './lib/savedFarm'
 import { SensitivityCard } from './components/SensitivityCard'
 import { sensitivityCheck } from './lib/sensitivity'
 import type { Sensitivity } from './lib/sensitivity'
@@ -22,7 +28,7 @@ import { applyPatch } from './lib/assistSchema'
 import { useMedia } from './lib/useMedia'
 import { ScoreRing } from './components/ScoreRing'
 import { ShareBar } from './components/ShareBar'
-import { decodeShare } from './lib/share'
+import { decodeShare, encodeShare } from './lib/share'
 import { ClimateChart } from './components/ClimateChart'
 import { Controls } from './components/Controls'
 import { StrategyCard } from './components/StrategyCard'
@@ -295,6 +301,27 @@ function App() {
   const shownPlace = inputs.presetId === CUSTOM_PRESET_ID && picked && !picked.startsWith('Custom point') ? picked : placeName
   const [fill, setFill] = useState<FillMode>('ai')
   const [fillTouched, setFillTouched] = useState(false)
+  // "Save my farm on this device": remembered in this browser only, offered again on the next visit (not when a share link is opened).
+  const [saved, setSaved] = useState<SavedFarm | null>(() => (decodeShare(window.location.search) ? null : loadSaved()))
+  const [saveOn, setSaveOn] = useState(true)
+  useEffect(() => {
+    if (picked !== null && saveOn) saveFarm(inputs, shownPlace)
+  }, [inputs, picked, saveOn, shownPlace])
+  const resumeSaved = () => {
+    if (!saved) return
+    const next = inputsFromSaved(fromPreset(PRESETS.find((p) => p.id === saved.presetId) ?? PRESETS[0]), saved)
+    setFormError(null)
+    setInputs(next)
+    setSite({ lat: next.lat, lon: next.lon })
+    setPicked(saved.label)
+    setSaved(null)
+  }
+  const forgetSaved = () => {
+    forgetFarm()
+    setSaved(null)
+    setSaveOn(false)
+  }
+  const online = useOnline()
   useEffect(() => {
     const on = () => {
       const next = readTab()
@@ -374,6 +401,11 @@ function App() {
   return (
     <>
       <TopBar place={shownPlace} onShare={() => goTo('data')} />
+      {!online && (
+        <p className="offline-bar app-offline" role="status">
+          You are offline. The demo sites still open if this device has them; other places, the place search, the map and the AI assistant need a connection.
+        </p>
+      )}
       <div className="app">
         <PageTabs tab={tab} onChange={goTo} locked={picked === null} />
 
@@ -419,6 +451,10 @@ function App() {
               />
             }
             onShowResults={showResults}
+            savedLabel={saved?.label ?? null}
+            onResume={resumeSaved}
+            remembered={saveOn}
+            onForget={forgetSaved}
             onSkip={() => {
               onPreset('kedah')
               setPicked(PRESETS[0].name)
@@ -478,6 +514,11 @@ function App() {
                           <p>Your current rotation scores as high as any alternative found for your priorities. The best alternative is:</p>
                         )}
                         <p className="path">{bestAlt.result.crops.map((c) => c.name).join(' → ')}</p>
+                        {bestBeatsCurrent && (
+                          <ul className="why-first" aria-label="Why it comes first">
+                            {whyFirst(bestAlt, strategies[0]).map((line) => <li key={line}>{line}</li>)}
+                          </ul>
+                        )}
                         <p className="fine">
                           Scores rank options for your inputs and 20 years of NASA POWER weather. They are not yield forecasts.
                         </p>
@@ -627,6 +668,7 @@ function App() {
                     ))}
                   </div>
                   <Pagination page={shownCardPage} pageSize={pageSize} total={strategies.length} onChange={(p) => { setCardPage(p); window.scrollTo({ top: 0 }) }} />
+                  <CompareCard strategies={strategies} table={table} bestId={bestAlt?.id ?? null} />
                   <PageNav tab="rotations" onChange={goTo} />
                 </>
               )}
@@ -641,7 +683,27 @@ function App() {
                   <ShareBar
                     inputs={inputs}
                     beforePrint={() => flushSync(() => setSatOpen(true))}
+                    csv={() =>
+                      table && strategies.length
+                        ? {
+                            name: 'plant-vs-climate-results.csv',
+                            text: resultsCsv(strategies, {
+                              appName: 'Plant vs Climate',
+                              place: shownPlace,
+                              lat: site.lat,
+                              lon: site.lon,
+                              mode: table.mode === 'seasons' ? '3 seasons per year' : '1 main crop per year, 3-year cycle',
+                              irrigated: inputs.irrigated,
+                              startMonth: table.startMonth,
+                              whatIf: inputs.scenario,
+                              url: `${window.location.origin}${window.location.pathname}?${encodeShare(inputs)}`,
+                              date: new Date().toLocaleDateString('en-CA'),
+                            }),
+                          }
+                        : null
+                    }
                   />
+                  <OfflineCard />
                 </>
               )}
               <section className="card local-advice" id="advice">
@@ -667,7 +729,7 @@ function App() {
             your visit is sent to NASA; for any other point the location you choose is sent from your browser to NASA POWER, to Open-Meteo’s place search only if you type a place name and press Search, and to ISRIC SoilGrids only if you press the soil button (“Use my location” is read by your browser only, and just a point rounded to about 1 km is used); map pictures
             come from NASA GIBS. If you use the optional AI assistant, the messages you type and a short summary of the setup form (never
             your coordinates) go through this site’s server to Groq, which runs an open-weight model to write the replies; do not type
-            personal details. Downloaded climate data is saved on your own device so it loads faster next time. The site is hosted on
+            personal details. Downloaded climate data and your farm setup are saved on your own device only (you can press “Forget it” on the first page), and the app keeps a copy of itself there so it can open offline. The site is hosted on
             Cloudflare, which, like any web host, can see that a page was requested.
           </p>
           <details>

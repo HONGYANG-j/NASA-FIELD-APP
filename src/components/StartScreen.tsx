@@ -33,6 +33,12 @@ interface Props {
   manual: ReactNode
   onShowResults: () => void
   onSkip: () => void
+  /** Place label of a farm saved on this device earlier, or null. */
+  savedLabel: string | null
+  onResume: () => void
+  /** True while the setup is being remembered on this device. */
+  remembered: boolean
+  onForget: () => void
 }
 
 const SUBTITLE: Record<string, string> = {
@@ -42,7 +48,7 @@ const SUBTITLE: Record<string, string> = {
 }
 
 /** The first page: choose the place (required), then describe the farm by chatting with the AI or by filling in the form. */
-export function StartScreen({ inputs, loading, failed, picked, onPicked, onPreset, onPickPoint, onSearchPick, onLoadCustom, formError, onChange, fill, onFill, ai, manual, onShowResults, onSkip }: Props) {
+export function StartScreen({ inputs, loading, failed, picked, onPicked, onPreset, onPickPoint, onSearchPick, onLoadCustom, formError, onChange, fill, onFill, ai, manual, onShowResults, onSkip, savedLabel, onResume, remembered, onForget }: Props) {
   const [custom, setCustom] = useState(() => (picked?.startsWith('Custom') ?? false))
   const [mapOpen, setMapOpen] = useState(false)
 
@@ -60,6 +66,14 @@ export function StartScreen({ inputs, loading, failed, picked, onPicked, onPrese
         <h1>Compare crop rotations for your farm</h1>
         <p className="lede">Two steps: tell us where the farm is, then describe it by chatting with the AI or by filling in the form. Everything is scored from 20 years of NASA climate data.</p>
       </div>
+
+      {savedLabel && !picked && (
+        <div className="saved-farm" role="region" aria-label="Saved farm">
+          <p><strong>Welcome back.</strong> Your farm at {savedLabel} is saved on this device.</p>
+          <button type="button" onClick={onResume}>Continue with it</button>
+          <button type="button" className="ghost" onClick={onForget}>Forget it</button>
+        </div>
+      )}
 
       <div className="card start-step">
         <h2><span className={`step-n ${picked ? 'done' : ''}`}>{picked ? '✓' : '1'}</span> Where is your farm? <small className="muted">(required)</small></h2>
@@ -132,7 +146,10 @@ export function StartScreen({ inputs, loading, failed, picked, onPicked, onPrese
             <div role="tabpanel" hidden={fill !== 'manual'} className="manual-grid">{manual}</div>
             <div className="start-cta">
               <button type="button" className="cta" onClick={onShowResults}>See my results →</button>
-              <span className="muted">You can change anything later with “Your farm” in the menu.</span>
+              <span className="muted">
+                You can change anything later with “Your farm” in the menu.{' '}
+                {remembered ? <>This setup is remembered on this device only. <button type="button" className="link" onClick={onForget}>Forget it</button></> : 'This setup is not being saved.'}
+              </span>
             </div>
           </>
         )}
